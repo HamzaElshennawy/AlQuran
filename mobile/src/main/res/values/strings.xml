@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">AlQuran</string>
+    <string name="search_reciters">بحث عن قارئ…</string>
+    <string name="search_surahs">بحث عن سورة…</string>
+    <string name="loading">جاري التحميل…</string>
+    <string name="player_widget_description">AlQuran Surah Player</string>
+    <string name="surah_name">اسم السورة</string>
+    <string name="reciter_name">اسم القارئ</string>
+    <plurals name="moshaf_count">
+        <item quantity="one">مصحف واحد</item>
+        <item quantity="two">مصحفان</item>
+        <item quantity="few">%d مصاحف</item>
+        <item quantity="many">%d مصحف</item>
+        <item quantity="zero">بدون مصاحف</item>
+        <item quantity="other">%d مصحف</item>
+    </plurals>
+    <plurals name="surah_count">
+        <item quantity="one">سورة واحدة</item>
+        <item quantity="two">سورتان</item>
+        <item quantity="few">%d سور</item>
+        <item quantity="many">%d سورة</item>
+        <item quantity="zero">بدون سور</item>
+        <item quantity="other">%d سورة</item>
+    </plurals>
+    <string name="surah_makkia">مكية</string>
+    <string name="surah_madaneyya">مدنية</string>
+</resources>

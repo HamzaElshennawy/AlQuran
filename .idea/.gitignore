@@ -1,0 +1,35 @@
+# ====================================
+# Android Studio / IntelliJ
+# ====================================
+/shelf
+/tasks.xml
+/dictionaries
+/workspace.xml
+/usage.statistics.xml
+/assetWizardSettings.xml
+
+# ====================================
+# Legacy / optional
+# ====================================
+/vcs.xml
+/misc.xml
+/gradle.xml
+/modules.xml
+/navEditor.xml
+
+
+# ====================================
+# Caches / misc
+# ====================================
+/caches
+/libraries
+/artifacts
+/kotlinc.xml
+/compiler.xml
+/httpRequests
+/migrations.xml
+/deviceManager.xml
+/jarRepositories.xml
+/appInsightsSettings.xml
+/AndroidProjectSystem.xml
+/deploymentTargetSelector.xml

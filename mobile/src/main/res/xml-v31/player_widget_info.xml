@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+widget width in cells is calculated as follows:
+cell_width = N * 70dp - 30dp
+where N is the number of cells
+
+widget height in cells is calculated as follows:
+cell_height = M * 70dp - 30dp
+where M is the number of cells
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/player_widget_description"
+    android:initialKeyguardLayout="@layout/player_widget"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="@dimen/widget_width"
+    android:minHeight="@dimen/widget_height"
+    android:minResizeWidth="@dimen/widget_width"
+    android:minResizeHeight="@dimen/widget_height"
+    android:maxResizeHeight="@dimen/widget_height"
+    android:previewImage="@drawable/player_widget_preview"
+    android:previewLayout="@layout/glance_default_loading_layout"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="86400000"
+    android:widgetCategory="home_screen" />

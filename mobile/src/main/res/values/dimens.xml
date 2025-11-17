@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+    widget width in cells is calculated as follows:
+    cell_width = N * 70dp - 30dp
+    where N is the number of cells
+
+    widget height in cells is calculated as follows:
+    cell_height = M * 70dp - 30dp
+    where M is the number of cells
+    -->
+
+    <!-- 1 Cell -->
+    <dimen name="widget_height">40dp</dimen>
+
+    <!-- 4 Cells -->
+    <dimen name="widget_width">250dp</dimen>
+</resources>
