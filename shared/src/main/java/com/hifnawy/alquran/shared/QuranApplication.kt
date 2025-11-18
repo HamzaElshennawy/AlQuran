@@ -23,6 +23,13 @@ class QuranApplication : Application() {
         super.onCreate()
 
         if (BuildConfig.DEBUG) Timber.plant(LogDebugTree())
+
+        // val arEg = LocaleListCompat.forLanguageTags("ar-EG")
+        //
+        // // Only set default if user has not chosen a locale
+        // if (AppCompatDelegate.getApplicationLocales().isEmpty) {
+        //     AppCompatDelegate.setApplicationLocales(arEg)
+        // }
     }
 
     private fun notifyKeepAwakeServiceObservers(status: ServiceStatus) {

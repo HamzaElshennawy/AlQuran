@@ -65,19 +65,9 @@ object RuntimeTypeAdapterFactoryEx {
      *
      * @return A configured RuntimeTypeAdapterFactory for the sealed class.
      */
+    @Suppress("UNCHECKED_CAST")
     val <T : Any> KClass<T>.registerSealedSubtypes: RuntimeTypeAdapterFactory<T>
-        get() {
-            require(this.isSealed)
-
-            var factory = RuntimeTypeAdapterFactory.of(this.java, "${this.simpleName?.lowercase()}_type")
-
-            this.allSealedLeafSubclasses.forEach { kSubclass ->
-                val tag = kSubclass.simpleName?.lowercase()
-                factory = factory.registerSubtype(kSubclass.java as Class<T>, tag)
-            }
-
-            return factory
-        }
+        get() = registerSealedSubtypes("${this.simpleName?.lowercase()}_type")
 
     /**
      * Extension function to automatically register all sealed subclasses
@@ -87,6 +77,7 @@ object RuntimeTypeAdapterFactoryEx {
      *
      * @return A configured RuntimeTypeAdapterFactory for the sealed class.
      */
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> KClass<T>.registerSealedSubtypes(typeFieldName: String): RuntimeTypeAdapterFactory<T> {
         require(this.isSealed)
 

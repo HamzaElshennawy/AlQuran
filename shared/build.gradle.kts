@@ -38,6 +38,7 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.media)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer)
