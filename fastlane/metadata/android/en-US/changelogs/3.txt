@@ -1,0 +1,12 @@
+* Refactor `QuranMediaService` and `Drawable` Handling
+   > - Refactored `QuranMediaService` for improved stability and state management by introducing a robust state machine, error handling, and a retry mechanism for playback failures.
+   > - Added comprehensive KDoc documentation to `QuranMediaService` and its components to clarify its responsibilities and usage.
+   > - Created a `DrawableResUtil` utility to centralize and simplify the retrieval of surah drawable resources, replacing a discouraged API usage (`resources.getIdentifier`).
+   > - Updated `MediaManager` and `AndroidAutoMediaBrowser` to use the new `DrawableResUtil`.
+* Major UI/UX Polish
+   > - Added adaptive layouts for tablets and large screens in FullScreenPlayer to enhance user experience across different devices.
+   > - Improved navigation flow for easier access to key features.
+   > - Updated color schemes and typography for better readability and visual appeal.
+   > - Updated project dependencies to the latest versions for improved performance and security.
+
+**Full Changelog**: https://github.com/abdalmoniem/AlQuran/compare/v0.0.2...v0.0.3

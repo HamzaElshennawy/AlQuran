@@ -1,6 +1,5 @@
 package com.hifnawy.alquran.shared.domain
 
-import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.lifecycle.Lifecycle
@@ -15,6 +14,7 @@ import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.shared.repository.DataError
 import com.hifnawy.alquran.shared.repository.QuranRepository
 import com.hifnawy.alquran.shared.repository.Result
+import com.hifnawy.alquran.shared.utils.DrawableResUtil.surahDrawableId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -87,9 +87,6 @@ object MediaManager : LifecycleOwner {
     }
 
     fun processSurah(reciter: Reciter, moshaf: Moshaf, surah: Surah) {
-        @SuppressLint("DiscouragedApi")
-        val drawableId = applicationContext.resources.getIdentifier("surah_${surah.id.toString().padStart(3, '0')}", "drawable", applicationContext.packageName)
-
         currentReciter = reciter
         currentMoshaf = moshaf
         currentSurah = surah
@@ -99,7 +96,7 @@ object MediaManager : LifecycleOwner {
                     reciter = reciter,
                     moshaf = moshaf,
                     surah = surah.toSurahWithUri(moshaf),
-                    surahDrawable = AppCompatResources.getDrawable(applicationContext, drawableId)
+                    surahDrawable = AppCompatResources.getDrawable(applicationContext, surah.surahDrawableId)
             )
         }
     }

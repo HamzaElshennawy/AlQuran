@@ -1,6 +1,5 @@
 package com.hifnawy.alquran.shared.domain
 
-import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
@@ -18,6 +17,7 @@ import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.shared.model.asReciterId
 import com.hifnawy.alquran.shared.repository.DataError
 import com.hifnawy.alquran.shared.repository.Result
+import com.hifnawy.alquran.shared.utils.DrawableResUtil.surahDrawableId
 import com.hifnawy.alquran.shared.utils.ImageUtil.drawTextOn
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.error
 import com.hifnawy.alquran.shared.utils.NumberExt.sp
@@ -157,9 +157,7 @@ open class AndroidAutoMediaBrowser : MediaBrowserServiceCompat() {
 
         surah.url?.let { setMediaUri(it.toUri()) }
 
-        @SuppressLint("DiscouragedApi")
-        val drawableId = resources.getIdentifier("surah_${surah.id.toString().padStart(3, '0')}", "drawable", packageName)
-        setIconBitmap((AppCompatResources.getDrawable(this@AndroidAutoMediaBrowser, drawableId) as BitmapDrawable).bitmap)
+        setIconBitmap((AppCompatResources.getDrawable(this@AndroidAutoMediaBrowser, surah.surahDrawableId) as BitmapDrawable).bitmap)
 
         MediaBrowserCompat.MediaItem(build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE)
     }
