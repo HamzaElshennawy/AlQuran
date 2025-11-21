@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Reciter
+import com.hifnawy.alquran.shared.model.ReciterId
 import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.utils.ModifierExt.AnimationType
 import com.hifnawy.alquran.utils.ModifierExt.animateItemPosition
@@ -46,6 +47,9 @@ fun SurahsGrid(
         modifier: Modifier = Modifier,
         reciter: Reciter,
         surahs: List<Surah>,
+        isPlaying: Boolean = false,
+        playingSurahId: Int? = null,
+        playingReciterId: ReciterId? = null,
         onSurahCardClick: (surah: Surah) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -112,6 +116,7 @@ fun SurahsGrid(
                         ),
                         surah = surah,
                         searchQuery = searchQuery,
+                        isPlaying = isPlaying && playingSurahId == surah.id && playingReciterId == reciter.id,
                         onClick = onSurahCardClick
                 )
 

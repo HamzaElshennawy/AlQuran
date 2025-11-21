@@ -109,7 +109,13 @@ private fun BoxScope.Content(
         return
     }
 
-    SurahsGrid(reciter = reciter, surahs = reciterSurahs) { surah ->
+    SurahsGrid(
+            reciter = reciter,
+            surahs = reciterSurahs,
+            isPlaying = mediaViewModel.playerState.isPlaying,
+            playingSurahId = mediaViewModel.playerState.surah?.id,
+            playingReciterId = mediaViewModel.playerState.reciter?.id
+    ) { surah ->
         mediaViewModel.playMedia(surah)
     }
 

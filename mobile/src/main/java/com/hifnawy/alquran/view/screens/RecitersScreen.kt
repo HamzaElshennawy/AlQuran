@@ -35,7 +35,10 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-fun RecitersScreen(mediaViewModel: MediaViewModel, navController: NavController) = Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+fun RecitersScreen(
+        mediaViewModel: MediaViewModel,
+        navController: NavController
+) = Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
     val pullToRefreshState = rememberPullToRefreshState()
     var isLoading by remember { mutableStateOf(true) }
     var dataError: DataError? by remember { mutableStateOf(null) }
@@ -95,7 +98,10 @@ private fun BoxScope.Content(
     else                            -> {
         RecitersGrid(
                 reciters = reciters,
-                isSkeleton = isLoading
+                isSkeleton = isLoading,
+                isPlaying = mediaViewModel.playerState.isPlaying,
+                playingReciterId = mediaViewModel.playerState.reciter?.id,
+                playingMoshafId = mediaViewModel.playerState.moshaf?.id
         ) { reciter, moshaf ->
             val reciterJson = reciter.asJsonString
             val moshafJson = moshaf.asJsonString

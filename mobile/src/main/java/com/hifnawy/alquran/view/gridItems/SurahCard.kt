@@ -3,8 +3,10 @@ package com.hifnawy.alquran.view.gridItems
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -16,17 +18,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.utils.TextUtil.highlightMatchingText
+import com.hifnawy.alquran.utils.sampleSurahs
+import com.hifnawy.alquran.view.player.AnimatedAudioBars
 import com.hifnawy.alquran.shared.R as Rs
 
 @Composable
 fun SurahCard(
         modifier: Modifier = Modifier,
         surah: Surah,
+        isPlaying: Boolean = false,
         searchQuery: String = "",
         onClick: (surah: Surah) -> Unit
 ) {
@@ -56,12 +62,28 @@ fun SurahCard(
 
             Text(
                     text = when (surah.makkia) {
-                        1    -> stringResource(R.string.surah_makkia)
+                        1 -> stringResource(R.string.surah_makkia)
                         else -> stringResource(R.string.surah_madaneyya)
                     },
                     fontSize = 25.sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
             )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (!isPlaying) return@Column
+            AnimatedAudioBars()
         }
     }
+}
+
+@Composable
+@Preview(widthDp = 150, heightDp = 150, locale = "ar")
+private fun SurahCardPreview() {
+    val surah = sampleSurahs.random()
+    SurahCard(
+            surah = surah,
+            isPlaying = true,
+            onClick = {}
+    )
 }

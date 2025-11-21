@@ -28,12 +28,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
+import com.hifnawy.alquran.shared.model.asReciterId
 import com.hifnawy.alquran.utils.TextUtil.highlightMatchingText
+import com.hifnawy.alquran.utils.sampleReciters
+import com.hifnawy.alquran.view.ShimmerAnimation
+import com.hifnawy.alquran.view.player.AnimatedAudioBars
 import com.hifnawy.alquran.shared.R as Rs
 
 @Composable
@@ -43,6 +48,8 @@ fun ReciterCard(
         isExpanded: Boolean,
         searchQuery: String = "",
         isSkeleton: Boolean = false,
+        isPlaying: Boolean = false,
+        playingMoshafId: Int? = null,
         brush: Brush? = null,
         onToggleExpand: () -> Unit = {},
         onMoshafClick: (Reciter, Moshaf) -> Unit = { _, _ -> }
@@ -50,7 +57,7 @@ fun ReciterCard(
     Card(
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.elevatedCardElevation(20.dp),
+            elevation = CardDefaults.cardElevation(20.dp),
             onClick = onToggleExpand,
     ) {
         Column(
@@ -69,18 +76,25 @@ fun ReciterCard(
                             .weight(1f)
                             .padding(vertical = 10.dp)
                 ) {
-                    ReciterName(
-                            isSkeleton = isSkeleton,
-                            brush = brush,
-                            reciter = reciter,
-                            searchQuery = searchQuery
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            ReciterName(
+                                    isSkeleton = isSkeleton,
+                                    brush = brush,
+                                    reciter = reciter,
+                                    searchQuery = searchQuery
+                            )
 
-                    MoshafCount(
-                            isSkeleton = isSkeleton,
-                            brush = brush,
-                            moshafCount = reciter?.moshaf?.size
-                    )
+                            MoshafCount(
+                                    isSkeleton = isSkeleton,
+                                    brush = brush,
+                                    moshafCount = reciter?.moshaf?.size
+                            )
+                        }
+
+                        if (isSkeleton || !isPlaying) return@Row
+                        AnimatedAudioBars(modifier = Modifier.padding(end = 10.dp))
+                    }
                 }
             }
 
@@ -93,7 +107,12 @@ fun ReciterCard(
                             .padding(start = 10.dp, bottom = 10.dp, end = 10.dp)
                 ) {
                     reciter.moshaf.forEach { moshaf ->
-                        MoshafCard(reciter = reciter, moshaf = moshaf, onMoshafClick = onMoshafClick)
+                        MoshafCard(
+                                reciter = reciter,
+                                moshaf = moshaf,
+                                isPlaying = isPlaying && playingMoshafId == moshaf.id,
+                                onMoshafClick = onMoshafClick
+                        )
                     }
                 }
             }
@@ -206,5 +225,41 @@ private fun MoshafCount(
                     fontFamily = FontFamily(Font(Rs.font.diwany_1))
             )
         }
+    }
+}
+
+@Composable
+@Preview(locale = "ar")
+private fun ReciterCardPreview() {
+    val reciter = sampleReciters.first { it.id == 118.asReciterId }
+    val playingMoshafId = reciter.moshaf.random().id
+    val randomChars = reciter.name.toList().shuffled().take(5)
+    val searchQuery = randomChars.joinToString("")
+
+    ReciterCard(
+            reciter = reciter,
+            isExpanded = true,
+            searchQuery = searchQuery,
+            isSkeleton = false,
+            isPlaying = true,
+            playingMoshafId = playingMoshafId,
+    )
+}
+
+@Composable
+@Preview(locale = "ar")
+private fun ReciterCardSkeletonPreview() {
+    val reciter = sampleReciters.first { it.id == 118.asReciterId }
+    val randomChars = reciter.name.toList().shuffled().take(5)
+    val searchQuery = randomChars.joinToString("")
+
+    ShimmerAnimation { brush ->
+        ReciterCard(
+                reciter = reciter,
+                isExpanded = true,
+                searchQuery = searchQuery,
+                isSkeleton = true,
+                brush = brush
+        )
     }
 }

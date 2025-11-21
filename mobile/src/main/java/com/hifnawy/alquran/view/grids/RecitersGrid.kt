@@ -48,6 +48,9 @@ fun RecitersGrid(
         modifier: Modifier = Modifier,
         reciters: List<Reciter>,
         isSkeleton: Boolean = false,
+        isPlaying: Boolean = false,
+        playingReciterId: ReciterId? = null,
+        playingMoshafId: Int? = null,
         onMoshafClick: (Reciter, Moshaf) -> Unit = { _, _ -> }
 ) {
     RecitersGridContainer(isSkeleton = isSkeleton) { brush ->
@@ -89,6 +92,8 @@ fun RecitersGrid(
                             expandedReciterId = expandedReciterId,
                             searchQuery = searchQuery,
                             isSkeleton = isSkeleton,
+                            isPlaying = isPlaying && playingReciterId == reciter?.id,
+                            playingMoshafId = playingMoshafId,
                             brush = brush,
                             onToggleExpand = { reciterId ->
                                 expandedReciterId = when (expandedReciterId) {
@@ -161,6 +166,8 @@ private fun GridItem(
         expandedReciterId: ReciterId,
         searchQuery: String,
         isSkeleton: Boolean,
+        isPlaying: Boolean,
+        playingMoshafId: Int?,
         brush: Brush?,
         onToggleExpand: (ReciterId) -> Unit = { },
         onMoshafClick: (Reciter, Moshaf) -> Unit
@@ -180,6 +187,8 @@ private fun GridItem(
             },
             searchQuery = searchQuery,
             isSkeleton = isSkeleton,
+            isPlaying = isPlaying,
+            playingMoshafId = playingMoshafId,
             brush = brush,
             onToggleExpand = when {
                 isSkeleton -> { -> Unit }

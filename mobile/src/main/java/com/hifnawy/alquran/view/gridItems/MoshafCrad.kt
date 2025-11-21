@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -14,22 +15,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
+import com.hifnawy.alquran.utils.sampleReciters
+import com.hifnawy.alquran.view.player.AnimatedAudioBars
 
 @Composable
 fun MoshafCard(
         modifier: Modifier = Modifier,
         reciter: Reciter,
         moshaf: Moshaf,
+        isPlaying: Boolean = false,
         onMoshafClick: (Reciter, Moshaf) -> Unit = { _, _ -> }
 ) {
     ElevatedCard(
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            // elevation = CardDefaults.elevatedCardElevation(20.dp),
+            elevation = CardDefaults.elevatedCardElevation(20.dp),
             onClick = { onMoshafClick(reciter, moshaf) },
     ) {
         Row(
@@ -51,6 +56,20 @@ fun MoshafCard(
                         .basicMarquee(),
                     text = "${moshaf.name} - ${pluralStringResource(R.plurals.surah_count, moshaf.surahsCount, moshaf.surahsCount)}",
             )
+
+            if (!isPlaying) return@Row
+            AnimatedAudioBars()
         }
     }
+}
+
+@Composable
+@Preview(locale = "ar")
+fun MoshafCardPreview() {
+    val reciter = sampleReciters.random()
+    val moshaf = reciter.moshaf.random()
+    MoshafCard(
+            reciter = reciter,
+            moshaf = moshaf
+    )
 }
