@@ -222,7 +222,7 @@ enum class DeviceConfiguration {
 
                 // Expanded Width
                 isAtLeastBreakpoint(widthDpBreakpoint = WidthSize.EXPANDED.dp, heightDpBreakpoint = HeightSize.EXPANDED.dp)    -> TABLET_LANDSCAPE
-                isAtLeastBreakpoint(widthDpBreakpoint = WidthSize.EXPANDED.dp, heightDpBreakpoint = HeightSize.MEDIUM.dp)      -> TABLET_LANDSCAPE
+                isAtLeastBreakpoint(widthDpBreakpoint = WidthSize.EXPANDED.dp, heightDpBreakpoint = HeightSize.MEDIUM.dp)      -> PHONE_LANDSCAPE
                 isAtLeastBreakpoint(widthDpBreakpoint = WidthSize.EXPANDED.dp, heightDpBreakpoint = HeightSize.COMPACT.dp)     -> PHONE_LANDSCAPE
 
                 // Medium Width

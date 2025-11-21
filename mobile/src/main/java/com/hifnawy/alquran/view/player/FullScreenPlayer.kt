@@ -12,6 +12,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -489,8 +490,8 @@ private fun RecitationInfo(
 
         val (surahSizingFactor, reciterSizingFactor) = when (deviceConfiguration) {
             DeviceConfiguration.COMPACT          -> 0f to 0f
-            DeviceConfiguration.PHONE_PORTRAIT   -> 0.08f to 0.05f
-            DeviceConfiguration.PHONE_LANDSCAPE  -> 0.2f to 0.15f
+            DeviceConfiguration.PHONE_PORTRAIT   -> 0.15f to 0.1f
+            DeviceConfiguration.PHONE_LANDSCAPE  -> 0.5f to 0.3f
             DeviceConfiguration.TABLET_PORTRAIT  -> 0.12f to 0.08f
             DeviceConfiguration.TABLET_LANDSCAPE -> 0.2f to 0.15f
         }
@@ -500,24 +501,56 @@ private fun RecitationInfo(
 
         Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
+                verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                    modifier = Modifier.basicMarquee(),
-                    text = state.surah?.name ?: stringResource(R.string.loading),
-                    fontSize = surahFontSize,
-                    fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
-                    color = Color.White.copy(alpha = 0.8f),
-            )
+            AutoSizeText(
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .fillMaxSize()
+            ) {
+                Text(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .basicMarquee(),
+                        text = state.surah?.name ?: stringResource(R.string.loading),
+                        fontSize = surahFontSize,
+                        fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
+                        color = Color.White.copy(alpha = 0.8f),
+                )
+            }
 
-            Text(
-                    modifier = Modifier.basicMarquee(),
-                    text = state.reciter?.name ?: stringResource(R.string.loading),
-                    fontSize = reciterFontSize,
-                    fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
-                    color = Color.White.copy(alpha = 0.8f),
-            )
+            AutoSizeText(
+                    modifier = Modifier
+                        .wrapContentHeight()
+            ) {
+                Text(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .basicMarquee(),
+                        text = state.reciter?.name ?: stringResource(R.string.loading),
+                        fontSize = reciterFontSize,
+                        fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
+                        color = Color.White.copy(alpha = 0.8f),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun AutoSizeText(
+        modifier: Modifier = Modifier,
+        content: @Composable BoxScope.() -> Unit
+) {
+    val deviceConfiguration = currentWindowAdaptiveInfo().windowSizeClass.deviceConfiguration
+
+    when (deviceConfiguration) {
+        DeviceConfiguration.COMPACT,
+        DeviceConfiguration.PHONE_PORTRAIT,
+        DeviceConfiguration.TABLET_PORTRAIT  -> Box { content() }
+
+        DeviceConfiguration.PHONE_LANDSCAPE,
+        DeviceConfiguration.TABLET_LANDSCAPE -> Box(modifier = modifier) { content() }
     }
 }
 
@@ -536,7 +569,16 @@ private fun PlayerProgress(
             modifier = modifier,
             contentAlignment = Alignment.TopCenter
     ) {
-        val fontSize = (maxHeight.value * 0.05f).sp
+        val deviceConfiguration = currentWindowAdaptiveInfo().windowSizeClass.deviceConfiguration
+
+        val sizingFactor = when (deviceConfiguration) {
+            DeviceConfiguration.COMPACT          -> 0f
+            DeviceConfiguration.PHONE_PORTRAIT   -> 0.12f
+            DeviceConfiguration.PHONE_LANDSCAPE  -> 0.08f
+            DeviceConfiguration.TABLET_PORTRAIT  -> 0.05f
+            DeviceConfiguration.TABLET_LANDSCAPE -> 0.05f
+        }
+        val fontSize = (maxHeight.value * sizingFactor).sp
 
         Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
