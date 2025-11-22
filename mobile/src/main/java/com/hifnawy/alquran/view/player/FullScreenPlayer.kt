@@ -69,6 +69,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -533,7 +534,7 @@ private fun RecitationInfo(
                             .basicMarquee(),
                         text = state.reciter?.name ?: stringResource(R.string.loading),
                         fontSize = reciterFontSize,
-                        fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
+                        fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                         color = Color.White.copy(alpha = 0.8f),
                 )
             }
@@ -599,6 +600,8 @@ private fun PlayerProgress(
                 Text(
                         text = currentSliderPositionMs.milliseconds.toLocalizedFormattedTime(showHours = showHours),
                         fontSize = fontSize,
+                        fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White.copy(alpha = 0.8f)
                 )
 
@@ -607,6 +610,8 @@ private fun PlayerProgress(
                 Text(
                         text = "\\",
                         fontSize = fontSize,
+                        fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White.copy(alpha = 0.8f)
                 )
 
@@ -615,6 +620,8 @@ private fun PlayerProgress(
                 Text(
                         text = state.durationMs.milliseconds.toLocalizedFormattedTime(showHours = showHours),
                         fontSize = fontSize,
+                        fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White.copy(alpha = 0.8f)
                 )
             }
