@@ -1073,7 +1073,8 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                     else                      -> quranApplication.lastStatusUpdate
                 }
 
-                delay(1_000.milliseconds)
+                // TODO: check this, the delay amount might be too low / too high
+                delay(100.milliseconds)
             }
         }
     }
