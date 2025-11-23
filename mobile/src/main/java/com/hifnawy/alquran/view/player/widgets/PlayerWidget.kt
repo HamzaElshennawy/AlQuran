@@ -51,6 +51,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import com.hifnawy.alquran.R
+import com.hifnawy.alquran.shared.BuildConfig
 import com.hifnawy.alquran.shared.domain.QuranMediaService
 import com.hifnawy.alquran.shared.domain.ServiceStatus
 import com.hifnawy.alquran.shared.model.Reciter
@@ -353,14 +354,25 @@ class PlayerWidget : GlanceAppWidget() {
             context: Context,
             reciter: Reciter?
     ) = Row {
-        Image(
-                ImageProvider(Rs.drawable.quran_icon_monochrome_white_64),
-                contentDescription = "Surah Image",
-                modifier = GlanceModifier
-                    .size(45.dp)
-                    .padding(10.dp),
-                colorFilter = ColorFilter.tint(ColorProvider(contentForegroundColor, contentForegroundColor))
-        )
+        when {
+            !BuildConfig.DEBUG -> Image(
+                    provider = ImageProvider(Rs.drawable.quran_icon_monochrome_white_64),
+                    contentDescription = "Surah Image",
+                    modifier = GlanceModifier
+                        .size(45.dp)
+                        .padding(10.dp),
+                    colorFilter = ColorFilter.tint(ColorProvider(contentForegroundColor, contentForegroundColor))
+            )
+
+            else               -> Image(
+                    provider = ImageProvider(R.drawable.experimental),
+                    contentDescription = "Experimental Logo",
+                    modifier = GlanceModifier
+                        .size(45.dp)
+                        .padding(10.dp),
+                    colorFilter = ColorFilter.tint(ColorProvider(contentForegroundColor, contentForegroundColor))
+            )
+        }
 
         Column(modifier = GlanceModifier.padding(horizontal = 10.dp)) {
             Text(
