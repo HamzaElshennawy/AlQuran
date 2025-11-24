@@ -354,6 +354,7 @@ class PlayerWidget : GlanceAppWidget() {
             context: Context,
             reciter: Reciter?
     ) = Row {
+        @Suppress("KotlinConstantConditions")
         when {
             !BuildConfig.DEBUG -> Image(
                     provider = ImageProvider(Rs.drawable.quran_icon_monochrome_white_64),
