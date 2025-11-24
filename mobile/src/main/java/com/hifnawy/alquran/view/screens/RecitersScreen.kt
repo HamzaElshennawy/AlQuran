@@ -1,6 +1,7 @@
 package com.hifnawy.alquran.view.screens
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,8 +18,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
+import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.QuranApplication
 import com.hifnawy.alquran.shared.domain.MediaManager
 import com.hifnawy.alquran.shared.model.Reciter
@@ -31,6 +34,7 @@ import com.hifnawy.alquran.view.grids.RecitersGrid
 import com.hifnawy.alquran.view.player.PlayerContainer
 import com.hifnawy.alquran.viewModel.MediaViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -39,10 +43,12 @@ fun RecitersScreen(
         mediaViewModel: MediaViewModel,
         navController: NavController
 ) = Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+    val context = LocalContext.current
     val pullToRefreshState = rememberPullToRefreshState()
     var isLoading by remember { mutableStateOf(true) }
     var dataError: DataError? by remember { mutableStateOf(null) }
     var reciters by remember { mutableStateOf(listOf<Reciter>()) }
+    val recitersLoadingError = stringResource(R.string.reciters_loading_error)
 
     LaunchedEffect(isLoading, reciters) {
         if (isLoading) {
@@ -56,7 +62,8 @@ fun RecitersScreen(
 
                     is Result.Error   -> {
                         dataError = result.error
-                        reciters = emptyList()
+
+                        kotlinx.coroutines.MainScope().launch { Toast.makeText(context, recitersLoadingError, Toast.LENGTH_LONG).show() }
                     }
                 }
 
@@ -92,11 +99,11 @@ private fun BoxScope.Content(
         mediaViewModel: MediaViewModel,
         dataError: DataError?,
         reciters: List<Reciter>
-) = when {
-    !isLoading && dataError != null -> DataErrorScreen(dataError = dataError)
+) {
+    when {
+        !isLoading && dataError != null && reciters.isEmpty() -> DataErrorScreen(dataError = dataError, errorMessage = stringResource(R.string.reciters_loading_error))
 
-    else                            -> {
-        RecitersGrid(
+        else                                                  -> RecitersGrid(
                 reciters = reciters,
                 isSkeleton = isLoading,
                 isPlaying = mediaViewModel.playerState.isPlaying,
@@ -108,9 +115,9 @@ private fun BoxScope.Content(
 
             navController.navigate(Screen.Surahs.route + "?reciter=$reciterJson&moshaf=$moshafJson")
         }
-
-        PlayerContainer(mediaViewModel = mediaViewModel)
     }
+
+    PlayerContainer(mediaViewModel = mediaViewModel)
 }
 
 @Preview

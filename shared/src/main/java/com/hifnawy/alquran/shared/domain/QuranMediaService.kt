@@ -591,18 +591,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
         setMediaSessionState(MediaSessionState.BUFFERING)
 
-        val reciter = currentReciter ?: return
-        val moshaf = currentMoshaf ?: return
-        val surah = currentSurah ?: return
-
-        quranApplication.lastStatusUpdate = ServiceStatus.Paused(
-                reciter = reciter,
-                moshaf = moshaf,
-                surah = surah,
-                durationMs = player.duration,
-                currentPositionMs = player.currentPosition,
-                bufferedPositionMs = player.bufferedPosition
-        )
+        quranApplication.lastStatusUpdate = ServiceStatus.Buffering
 
         startRetryMechanism()
     }
@@ -639,14 +628,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         when (state) {
             Player.STATE_BUFFERING -> {
                 setMediaSessionState(MediaSessionState.BUFFERING)
-                quranApplication.lastStatusUpdate = ServiceStatus.Paused(
-                        reciter = reciter,
-                        moshaf = moshaf,
-                        surah = surah,
-                        durationMs = player.duration,
-                        currentPositionMs = player.currentPosition,
-                        bufferedPositionMs = player.bufferedPosition
-                )
+                quranApplication.lastStatusUpdate = ServiceStatus.Buffering
             }
 
             Player.STATE_READY     -> when {
@@ -970,7 +952,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      * @param position [Long] The position to seek to.
      */
     fun seekTo(position: Long) {
-        if (position <= 0) return
+        if (position < 0) return
 
         Timber.debug("seekTo: $position")
 
@@ -1002,9 +984,15 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         val reciter = currentReciter ?: return
         val moshaf = currentMoshaf ?: return
 
-        player.stop()
-        currentSurahPosition = -1L
-        MediaManager.processPreviousSurah(reciter, moshaf)
+        when {
+            player.currentPosition.milliseconds < 3.seconds -> {
+                player.stop()
+                currentSurahPosition = -1L
+                MediaManager.processPreviousSurah(reciter, moshaf)
+            }
+
+            else                                            -> seekTo(0)
+        }
     }
 
     /**
@@ -1061,7 +1049,9 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
                 setMediaSessionState(mediaSessionState)
                 quranApplication.lastStatusUpdate = when (mediaSessionState) {
-                    MediaSessionState.PLAYING -> ServiceStatus.Playing(
+                    MediaSessionState.BUFFERING -> ServiceStatus.Buffering
+
+                    MediaSessionState.PLAYING   -> ServiceStatus.Playing(
                             reciter = reciter,
                             moshaf = moshaf,
                             surah = surah,
@@ -1070,7 +1060,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                             bufferedPositionMs = player.bufferedPosition
                     )
 
-                    MediaSessionState.PAUSED  -> ServiceStatus.Paused(
+                    MediaSessionState.PAUSED    -> ServiceStatus.Paused(
                             reciter = reciter,
                             moshaf = moshaf,
                             surah = surah,
@@ -1079,7 +1069,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                             bufferedPositionMs = player.bufferedPosition
                     )
 
-                    else                      -> quranApplication.lastStatusUpdate
+                    else                        -> quranApplication.lastStatusUpdate
                 }
 
                 // TODO: check this, the delay amount might be too low / too high

@@ -94,7 +94,8 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
         quranApplication.startService(this)
         playerState = playerState.copy(
                 isVisible = true,
-                isPlaying = true,
+                isBuffering = true,
+                isPlaying = false,
                 isExpanded = true,
                 reciter = reciter,
                 moshaf = moshaf,
@@ -115,6 +116,8 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
      * confirmed shortly after by an update from the service via [onServiceStatusUpdated].
      */
     fun togglePlayback(): Unit = Intent(quranApplication, QuranMediaService::class.java).run {
+        if (playerState.isBuffering) return
+
         action = QuranMediaService.Actions.ACTION_TOGGLE_PLAY_PAUSE.name
         quranApplication.startService(this)
 
@@ -214,7 +217,8 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
 
         when (status) {
             is ServiceStatus.Paused,
-            is ServiceStatus.Playing -> playerState = playerState.copy(
+            is ServiceStatus.Playing   -> playerState = playerState.copy(
+                    isBuffering = false,
                     isPlaying = status is ServiceStatus.Playing,
                     surah = status.surah,
                     durationMs = status.durationMs,
@@ -222,8 +226,9 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
                     bufferedPositionMs = status.bufferedPositionMs
             )
 
-            is ServiceStatus.Stopped -> playerState = playerState.copy(isPlaying = false)
-            is ServiceStatus.Ended   -> skipToNextSurah()
+            is ServiceStatus.Buffering -> playerState = playerState.copy(isBuffering = true, isPlaying = false)
+            is ServiceStatus.Stopped   -> playerState = playerState.copy(isBuffering = false, isPlaying = false)
+            is ServiceStatus.Ended     -> skipToNextSurah()
         }
 
         Timber.debug("surah: ${playerState.surah}")
@@ -260,6 +265,7 @@ data class PlayerState(
         val currentPositionMs: Long = 0,
         val bufferedPositionMs: Long = 0,
         val isVisible: Boolean = false,
+        val isBuffering: Boolean = false,
         val isPlaying: Boolean = false,
         val isExpanded: Boolean = true
 )

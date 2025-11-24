@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -32,7 +33,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
@@ -42,6 +46,7 @@ import com.hifnawy.alquran.utils.ModifierExt.AnimationType
 import com.hifnawy.alquran.utils.ModifierExt.animateItemPosition
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.gridItems.ReciterCard
+import com.hifnawy.alquran.shared.R as Rs
 
 @Composable
 fun RecitersGrid(
@@ -65,6 +70,10 @@ fun RecitersGrid(
 
             val listState = rememberLazyGridState()
             val filteredReciters = remember(reciters, searchQuery) { filterReciters(reciters, searchQuery) }
+
+            TitleBar(isSkeleton = isSkeleton, brush = brush)
+
+            Spacer(modifier = Modifier.size(5.dp))
 
             SearchBar(
                     isSkeleton = isSkeleton,
@@ -114,10 +123,31 @@ fun RecitersGrid(
 @Composable
 private fun RecitersGridContainer(
         isSkeleton: Boolean,
-        content: @Composable (Brush?) -> Unit
+        content: @Composable (brush: Brush?) -> Unit
 ) = when {
     isSkeleton -> ShimmerAnimation { brush -> content(brush) }
     else       -> content(null)
+}
+
+@Composable
+private fun TitleBar(
+        isSkeleton: Boolean,
+        brush: Brush?
+) {
+    if (isSkeleton) {
+        if (brush == null) return
+        Spacer(
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(brush)
+        )
+    } else Text(
+            text = stringResource(Rs.string.quran),
+            fontSize = 50.sp,
+            fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2))
+    )
 }
 
 @Composable
@@ -136,27 +166,25 @@ private fun SearchBar(
                     .clip(RoundedCornerShape(20.dp))
                     .background(brush)
         )
-    } else {
-        TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                shape = RoundedCornerShape(10.dp),
-                colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                ),
-                singleLine = true,
-                placeholder = { Text(stringResource(R.string.search_reciters)) },
-                label = { Text(stringResource(R.string.search_reciters)) },
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    Icon(
-                            painter = painterResource(id = R.drawable.search_24px),
-                            contentDescription = "Search Icon"
-                    )
-                }
-        )
-    }
+    } else TextField(
+            value = query,
+            onValueChange = onQueryChange,
+            shape = RoundedCornerShape(20.dp),
+            colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+            ),
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.search_reciters)) },
+            label = { Text(stringResource(R.string.search_reciters)) },
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                Icon(
+                        painter = painterResource(id = R.drawable.search_24px),
+                        contentDescription = "Search Icon"
+                )
+            }
+    )
 }
 
 @Composable
@@ -202,8 +230,8 @@ private fun GridItem(
 }
 
 private fun <T> LazyGridScope.gridItems(isSkeleton: Boolean, items: List<T>, content: @Composable LazyGridItemScope.(Int, T?) -> Unit) = when {
-    isSkeleton -> itemsIndexed(items = (0..300).toList(), key = { _, item -> item }) { index, _ -> content(index, null) }
-    else       -> itemsIndexed(items = items, key = { _, reciter -> reciter.hashCode() }) { index, reciter -> content(index, reciter) }
+    isSkeleton -> itemsIndexed(items = (1..300).toList(), key = { _, item -> item }) { index, _ -> content(index, null) }
+    else       -> itemsIndexed(items = items, key = { _, item -> item.hashCode() }) { index, item -> content(index, item) }
 }
 
 private fun filterReciters(reciters: List<Reciter>, query: String): List<Reciter> {

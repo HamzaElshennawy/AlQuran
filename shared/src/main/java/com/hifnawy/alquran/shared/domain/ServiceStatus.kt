@@ -66,6 +66,33 @@ sealed class ServiceStatus {
     }
 
     /**
+     * Represents the state where the media is buffering.
+     *
+     * This state is triggered when the media player is temporarily pausing playback to download
+     * more of the media content. It's a transient state that typically occurs during playback
+     * over a slow or unstable network connection. The UI can use this state to display a
+     * loading indicator to the user, signaling that playback will resume shortly.
+     *
+     * It inherits from [MediaInfo] to provide details about the media item that is currently
+     * being buffered, including its current position and the total duration.
+     *
+     * @param reciter [Reciter] The [Reciter] of the currently buffering surah.
+     * @param moshaf [Moshaf] The [Moshaf] (recitation style) of the currently buffering surah.
+     * @param surah [Surah] The [Surah] that is currently buffering.
+     * @param durationMs [Long] The total duration of the media in milliseconds.
+     * @param currentPositionMs [Long] The current playback position in milliseconds.
+     * @param bufferedPositionMs [Long] The position up to which the media has been buffered, in milliseconds.
+     *
+     * @see ServiceStatus
+     * @see MediaInfo
+     * @see Playing
+     * @see Paused
+     * @see Ended
+     * @see Stopped
+     */
+    data object Buffering : ServiceStatus()
+
+    /**
      * Represents the state where media is actively playing.
      *
      * This data class is a specific implementation of [MediaInfo] and indicates that the
@@ -82,6 +109,7 @@ sealed class ServiceStatus {
      *
      * @see ServiceStatus
      * @see MediaInfo
+     * @see Buffering
      * @see Paused
      * @see Ended
      * @see Stopped
@@ -112,6 +140,7 @@ sealed class ServiceStatus {
      *
      * @see ServiceStatus
      * @see MediaInfo
+     * @see Buffering
      * @see Playing
      * @see Ended
      * @see Stopped
@@ -133,6 +162,7 @@ sealed class ServiceStatus {
      * such as playing the next track in a playlist or stopping the service.
      *
      * @see ServiceStatus
+     * @see Buffering
      * @see Playing
      * @see Paused
      * @see Stopped
@@ -148,6 +178,7 @@ sealed class ServiceStatus {
      * which signifies the completion of a track.
      *
      * @see ServiceStatus
+     * @see Buffering
      * @see Playing
      * @see Paused
      * @see Ended

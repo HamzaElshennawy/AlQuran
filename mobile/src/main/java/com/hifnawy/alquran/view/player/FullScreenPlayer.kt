@@ -636,7 +636,16 @@ private fun PlayerProgress(
                 val thumbWidth = 10.dp
                 val thumbHeight = trackHeight + 10.dp
 
-                if (state.durationMs > 0) {
+                if (state.isBuffering) {
+                    BufferingIndicator(
+                            modifier = Modifier
+                                .padding(horizontal = thumbWidth / 2)
+                                .align(Alignment.Center),
+                            trackHeight = trackHeight,
+                            trackColor = trackActiveColor,
+                            trackShape = trackShape
+                    )
+                } else {
                     Slider(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -679,15 +688,6 @@ private fun PlayerProgress(
                             trackGap = trackGap,
                             trackHeight = trackHeight,
                             trackColor = Color.DarkGray.copy(alpha = 0.3f),
-                            trackShape = trackShape
-                    )
-                } else {
-                    BufferingIndicator(
-                            modifier = Modifier
-                                .padding(horizontal = thumbWidth / 2)
-                                .align(Alignment.Center),
-                            trackHeight = trackHeight,
-                            trackColor = trackActiveColor,
                             trackShape = trackShape
                     )
                 }

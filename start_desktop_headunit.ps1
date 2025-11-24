@@ -1,4 +1,4 @@
-$SDKPath = $env:ANDROID_HOME
+$SDKPath = $env:ANDROID_SDK_ROOT
 
 if (-not $SDKPath) {
     Write-Error "ERROR: SDKPath parameter is missing, please make sure ANDROID_HOME environment variable is set"

@@ -100,8 +100,12 @@ fun ReciterCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
             ) {
-                Chevron(isSkeleton, brush, reciter, isExpanded)
-
+                Chevron(
+                        isSkeleton = isSkeleton,
+                        brush = brush,
+                        reciter = reciter,
+                        isExpanded = isExpanded
+                )
 
                 Column(
                         modifier = Modifier

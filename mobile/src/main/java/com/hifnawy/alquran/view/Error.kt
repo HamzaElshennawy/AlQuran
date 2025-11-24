@@ -18,20 +18,20 @@ import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.repository.DataError
 
 @Composable
-fun DataErrorScreen(dataError: DataError) {
+fun DataErrorScreen(dataError: DataError, errorMessage: String) {
     when (dataError) {
-        is DataError.LocalError   -> LocalErrorScreen(dataError)
-        is DataError.NetworkError -> NetworkErrorScreen(dataError)
-        is DataError.ParseError   -> ParseErrorScreen(dataError)
+        is DataError.LocalError   -> LocalErrorScreen(localError = dataError, errorMessage = errorMessage)
+        is DataError.NetworkError -> NetworkErrorScreen(networkError = dataError, errorMessage = errorMessage)
+        is DataError.ParseError   -> ParseErrorScreen(parseError = dataError, errorMessage = errorMessage)
     }
 }
 
 @Composable
-fun LocalErrorScreen(localError: DataError.LocalError) {
+fun LocalErrorScreen(localError: DataError.LocalError, errorMessage: String) {
 }
 
 @Composable
-fun NetworkErrorScreen(networkError: DataError.NetworkError) {
+fun NetworkErrorScreen(networkError: DataError.NetworkError, errorMessage: String) {
     val scrollState = rememberScrollState()
     Column(
             modifier = Modifier
@@ -49,12 +49,12 @@ fun NetworkErrorScreen(networkError: DataError.NetworkError) {
         )
 
         Text(
-                text = "حدث خطأ أثناء تحميل القراء، برجاء المحاولة مرة أخرى.",
+                text = errorMessage,
                 style = MaterialTheme.typography.titleLarge
         )
     }
 }
 
 @Composable
-private fun ParseErrorScreen(parseError: DataError.ParseError) {
+private fun ParseErrorScreen(parseError: DataError.ParseError, errorMessage: String) {
 }
