@@ -91,3 +91,16 @@
 
 # Additional javax.lang.model classes that might be referenced
 -dontwarn javax.lang.model.**
+
+# ============================================
+# GlanceAppWidget
+# ============================================
+
+# Keep the AppWidgetId class and all its fields/methods
+-keep class androidx.glance.appwidget.AppWidgetId { *; }
+
+# Keep field names
+-keepclassmembers class androidx.glance.appwidget.AppWidgetId {
+    <init>(...);
+    <fields>;
+}
