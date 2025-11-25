@@ -247,6 +247,8 @@ def setBackgroundColor(renderer: RendererType, alpha: int = 255) -> None:
       renderer.fill(darkTeal, alpha)
 
    # Draw the solid theme color rectangle over the background
+   renderer.stroke(0, 0)
+   renderer.stroke_weight(0)
    renderer.rect(0, 0, sketchWidth, sketchHeight)
 
 
