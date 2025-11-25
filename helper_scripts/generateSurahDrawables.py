@@ -1,6 +1,4 @@
 """
-Module docstring for generateSurahDrawables.py.
-
 This script generates Surah images with optional canvas display.
 
 Usage:
@@ -301,6 +299,8 @@ def settings() -> None:
    """
    Py5 sketch configuration function (called first).
    Sets canvas size and rendering mode based on the 'isHeadless' flag.
+
+   This function is called first in a Py5 sketch. It sets the sketch's canvas size and rendering mode based on the 'isHeadless' flag. If 'isHeadless' is True, the sketch uses the HIDDEN renderer for batch processing without a display window. Otherwise, it uses the JAVA2D renderer for standard interactive display.
    """
    global sketchWidth, sketchHeight
 
@@ -349,9 +349,12 @@ def setup() -> None:
 # --- Main Draw Loop ---
 def draw() -> None:
    """
-   Py5 continuous loop function (called repeatedly).
-   Manages the loading state, the fade-in/delay/fade-out animation, and Surah progression.
+   Py5 draw function (called continuously to render the animation).
+
+   This function handles the animation loop and draws the current Surah content
+   on the screen at the appropriate opacity level.
    """
+
    global surahIndex, previousTimestamp
 
    # If data is loading, draw the loading indicator and skip animation logic
@@ -407,7 +410,11 @@ def draw() -> None:
 
 
 def generate() -> None:
-   """Runs the Py5 sketch in interactive mode."""
+   """
+   Runs the Py5 sketch in interactive mode.
+
+   This function runs the Py5 sketch in interactive mode, which means it has a display window.
+   """
    py5.run_sketch(
        sketch_functions = {
           "settings": settings,
@@ -418,7 +425,11 @@ def generate() -> None:
 
 
 def generateHeadless() -> None:
-   """Runs the Py5 sketch in headless mode."""
+   """
+   Runs the Py5 sketch in headless mode.
+
+   This function runs the Py5 sketch in headless mode, which means it does not have a display window.
+   """
    py5.run_sketch(
        sketch_functions = {
           "settings": settings,
@@ -427,6 +438,14 @@ def generateHeadless() -> None:
    )
 
 
-if __name__ == "__main__":
+def main() -> None:
+   """Runs the Py5 sketch.
+
+   Depending on the value of the `isHeadless` flag, it runs the sketch in interactive mode (default) or in headless mode.
+   """
    # Execute the appropriate Py5 run function based on the command-line argument.
    generateHeadless() if isHeadless else generate()
+
+
+if __name__ == "__main__":
+   main()
