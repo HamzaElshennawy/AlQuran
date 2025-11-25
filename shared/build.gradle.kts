@@ -1,3 +1,4 @@
+import com.hifnawy.pre.build.PreBuildPluginEx
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
@@ -21,9 +22,12 @@ private val localPropertiesFile = rootProject.file("local.properties")
  */
 private var isSigningConfigEnabled = false
 
+val preBuildPlugin = extensions.getByType<PreBuildPluginEx>()
+
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.pre.build)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.android.library)
 }
 
 android {
@@ -136,4 +140,8 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.appcompat.resources)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+}
+
+tasks.named("preBuild") {
+    dependsOn(preBuildPlugin.generateSurahDrawables)
 }
