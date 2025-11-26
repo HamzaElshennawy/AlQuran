@@ -373,7 +373,8 @@ private fun PlayerContentLandScape(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight(),
-                    surahDrawableId = surahDrawableId
+                    surahDrawableId = surahDrawableId,
+                    alignment = Alignment.Center
             )
 
             Spacer(modifier = Modifier.width(10.dp))
@@ -430,7 +431,8 @@ private fun PlayerContentCompact(
     MiniPlayerControlsContainer(modifier = modifier.fillMaxSize(), state = state) { areControlsVisible ->
         SurahImage(
                 modifier = Modifier.padding(10.dp),
-                surahDrawableId = surahDrawableId
+                surahDrawableId = surahDrawableId,
+                alignment = Alignment.Center
         )
 
         MiniPlayerControls(
@@ -578,11 +580,12 @@ private fun PlayerTopBar(
 private fun SurahImage(
         modifier: Modifier = Modifier,
         @DrawableRes
-        surahDrawableId: Int
+        surahDrawableId: Int,
+        alignment: Alignment = Alignment.BottomCenter
 ) {
     BoxWithConstraints(
             modifier = modifier.fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter
+            contentAlignment = alignment
     ) {
         val deviceConfiguration = currentWindowAdaptiveInfo().windowSizeClass.deviceConfiguration
 
