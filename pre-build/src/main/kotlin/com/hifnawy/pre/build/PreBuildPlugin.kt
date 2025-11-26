@@ -14,14 +14,14 @@ import java.io.IOException
  *
  * @author AbdElMoniem ElHifnawy
  */
-sealed interface Error
+private sealed interface Error
 
 /**
  * Represents the root error type for all errors within the plugin.
  *
  * @see Error
  */
-typealias RootError = Error
+private typealias RootError = Error
 
 /**
  * A sealed interface representing the outcome of an operation, which can either be a [Success] or an [Error].
@@ -36,7 +36,7 @@ typealias RootError = Error
  * @see Success
  * @see Error
  */
-sealed interface Result<out D, out E : RootError> {
+private sealed interface Result<out D, out E : RootError> {
 
     /**
      * Represents a successful outcome of an operation.
@@ -82,7 +82,7 @@ sealed interface Result<out D, out E : RootError> {
  * @see Error
  * @see Result
  */
-class ExecutionError(val errorCode: Int, val errorMessage: String) : Error
+private class ExecutionError(val errorCode: Int, val errorMessage: String) : Error
 
 /**
  * A data class that encapsulates the results of executing an external process.
@@ -97,7 +97,29 @@ class ExecutionError(val errorCode: Int, val errorMessage: String) : Error
  * @see Process
  * @see ProcessBuilder
  */
-data class ProcessMetadata(val exitCode: Int, val stdout: String, val stderr: String)
+private data class ProcessMetadata(val exitCode: Int, val stdout: String, val stderr: String)
+
+/**
+ * A data class that encapsulates file path information related to the helper scripts.
+ *
+ * This class provides convenient access to the directory containing the Python helper scripts
+ * and the Python virtual environment (`.venv`) directory within it. The paths are resolved
+ * relative to the project's root directory.
+ *
+ * @param project [Project] The Gradle [Project] instance, used to resolve the root directory.
+ * @property dir [File] A [File] object representing the `helper-scripts` directory located at the project root.
+ * @property venv [File] A [File] object representing the `.venv` directory inside the `helper-scripts` directory.
+ *
+ * @author AbdElMoniem ElHifnawy
+ *
+ * @see Project
+ * @see File
+ */
+private data class HelperScripts(private val project: Project) {
+
+    val dir = File(project.rootDir, "helper-scripts")
+    val venv = File(dir, ".venv")
+}
 
 /**
  * A Gradle extension class that provides access to the tasks defined by the [PreBuildPlugin].
@@ -208,86 +230,103 @@ class PreBuildPlugin : Plugin<Project> {
      *
      * @param project [Project] The Gradle [Project] to which this plugin is being applied.
      */
-    override fun apply(project: Project) {
-        val extension = project.extensions.create("preBuildPlugin", PreBuildPluginEx::class.java)
+    override fun apply(project: Project) = project.run {
+        val helperScripts = HelperScripts(this@run)
 
-        val helperScriptsDir = File(project.rootDir, "helper-scripts")
-        val venvDir = File(helperScriptsDir, ".venv")
-        val generateSampleDataScript = File(helperScriptsDir, "generateSampleData.py")
-        val generateSurahDrawablesScript = File(helperScriptsDir, "generateSurahDrawables.py")
+        val checkUvTask = registerCommandTask(
+                name = "checkUv",
+                dependsOn = emptyList(),
+                workingDir = helperScripts.dir,
+                command = "uv --version",
+                errorMessage = "uv is not installed or not found in PATH. Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
+        )
 
-        val checkUv = project.tasks.register("checkUv") {
-            doLast {
-                val result = executeCommand(workingDir = helperScriptsDir, command = "uv --version")
-                when (result) {
-                    is Result.Success -> project.logger.lifecycle(result.stdout)
+        val createVenvTask = registerCommandTask(
+                name = "createVenv",
+                dependsOn = listOf(checkUvTask),
+                workingDir = helperScripts.dir,
+                command = "uv venv .venv",
+                errorMessage = "Failed to create venv",
+                onlyIf = { !helperScripts.venv.exists() }
+        )
+
+        val syncVenvTask = registerCommandTask(
+                name = "syncVenv",
+                dependsOn = listOf(createVenvTask),
+                workingDir = helperScripts.dir,
+                command = "uv sync",
+                errorMessage = "Failed to sync venv"
+        )
+
+        val generateSampleDataTask = registerCommandTask(
+                name = "generateSampleData",
+                dependsOn = listOf(syncVenvTask),
+                workingDir = helperScripts.dir,
+                command = "uv run generateSampleData.py"
+        )
+
+        val generateSurahDrawablesTask = registerCommandTask(
+                name = "generateSurahDrawables",
+                dependsOn = listOf(syncVenvTask),
+                workingDir = helperScripts.dir,
+                command = "uv run generateSurahDrawables.py --headless"
+        )
+
+        extensions.create("preBuildPlugin", PreBuildPluginEx::class.java).run {
+            generateSampleData = generateSampleDataTask
+            generateSurahDrawables = generateSurahDrawablesTask
+        }
+    }
+
+    /**
+     * Registers a new Gradle task that executes a shell command.
+     *
+     * This is a helper extension function for [Project] that simplifies the creation of tasks
+     * designed to run external commands. The function handles task registration, dependency management,
+     * conditional execution, and command output processing.
+     *
+     * The created task will execute the specified [command] in the given [workingDir].
+     * If the command succeeds (exit code 0), its standard output is logged at the `LIFECYCLE` level.
+     * If the command fails (non-zero exit code), the standard error is logged as an `ERROR`, and a [GradleException]
+     * is thrown, causing the build to fail.
+     *
+     * @param name [String] The name for the new task to be registered.
+     * @param dependsOn [List]<[TaskProvider]<out [Task]>> A list of [TaskProvider]s that this new task will depend on. The task will not run until all dependencies have completed successfully.
+     * @param workingDir [File] The working directory in which the [command] will be executed.
+     * @param command [String] The shell command to execute (e.g., "uv --version").
+     * @param errorMessage [String?] An optional custom error message to be used in the [GradleException] if the command fails. If `null`, the command's standard error output will be used.
+     * @param onlyIf [(() -> Boolean)?][(() -> Boolean)] An optional predicate. If provided, the task will only execute if the predicate returns `true`.
+     *
+     * @return [TaskProvider< Task >][TaskProvider] A [TaskProvider] for the newly registered task.
+     *
+     * @see executeCommand
+     * @see GradleException
+     */
+    private fun Project.registerCommandTask(
+            name: String,
+            dependsOn: List<TaskProvider<out Task>>,
+            workingDir: File,
+            command: String,
+            errorMessage: String? = null,
+            onlyIf: (() -> Boolean)? = null
+    ) = tasks.register(name) {
+        if (dependsOn.isNotEmpty()) dependsOn(dependsOn)
+
+        onlyIf?.let { onlyIf { it() } }
+
+        doLast {
+            val result = executeCommand(workingDir, command)
+
+            with(result) {
+                when (this) {
+                    is Result.Success -> logger.lifecycle(stdout)
                     is Result.Error   -> {
-                        project.logger.error("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                        throw GradleException("uv is not installed or not found in PATH. Please install uv: https://docs.astral.sh/uv/getting-started/installation/")
+                        logger.error("ERROR ${error.errorCode}: ${error.errorMessage}")
+                        throw GradleException(errorMessage ?: error.errorMessage)
                     }
                 }
             }
         }
-
-        val createVenv = project.tasks.register("createVenv") {
-            dependsOn(checkUv)
-            doLast {
-                val result = executeCommand(workingDir = helperScriptsDir, command = "uv venv .venv")
-                when (result) {
-                    is Result.Success -> project.logger.lifecycle(result.stdout)
-                    is Result.Error   -> {
-                        project.logger.error("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                        throw GradleException("Failed to create venv")
-                    }
-                }
-            }
-            onlyIf { !venvDir.exists() }
-        }
-
-        val syncVenv = project.tasks.register("syncVenv") {
-            dependsOn(createVenv)
-            doLast {
-                val result = executeCommand(workingDir = helperScriptsDir, command = "uv sync")
-                when (result) {
-                    is Result.Success -> project.logger.lifecycle(result.stdout)
-                    is Result.Error   -> {
-                        project.logger.error("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                        throw GradleException("Failed to sync venv")
-                    }
-                }
-            }
-        }
-
-        val generateSampleData = project.tasks.register("generateSampleData") {
-            dependsOn(syncVenv)
-            doLast {
-                val result = executeCommand(workingDir = helperScriptsDir, command = "uv run ${generateSampleDataScript.name}")
-                when (result) {
-                    is Result.Success -> project.logger.lifecycle(result.stdout)
-                    is Result.Error   -> {
-                        project.logger.error("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                        throw GradleException("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                    }
-                }
-            }
-        }
-
-        val generateSurahDrawables = project.tasks.register("generateSurahDrawables") {
-            dependsOn(syncVenv)
-            doLast {
-                val result = executeCommand(workingDir = helperScriptsDir, command = "uv run ${generateSurahDrawablesScript.name} --headless")
-                when (result) {
-                    is Result.Success -> project.logger.lifecycle(result.stdout)
-                    is Result.Error   -> {
-                        project.logger.error("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                        throw GradleException("ERROR ${result.error.errorCode}: ${result.error.errorMessage}")
-                    }
-                }
-            }
-        }
-
-        extension.generateSampleData = generateSampleData
-        extension.generateSurahDrawables = generateSurahDrawables
     }
 
     /**
@@ -313,17 +352,17 @@ class PreBuildPlugin : Plugin<Project> {
      * @see ExecutionError
      * @see processBuilder
      */
-    fun executeCommand(workingDir: File? = null, command: String): Result<String, ExecutionError> {
+    private fun executeCommand(workingDir: File? = null, command: String): Result<String, ExecutionError> {
         return try {
             val commandWithArgs = command.split(" ").toTypedArray()
             val (exitCode, stdout, stderr) = processBuilder(workingDir = workingDir, args = commandWithArgs)
 
             when (exitCode) {
-                0    -> Result.Success(stdout = stdout.trim())
+                0 -> Result.Success(stdout = stdout.trim())
                 else -> Result.Error(ExecutionError(exitCode, stderr))
             }
         } catch (ex: IOException) {
-            Result.Error(ExecutionError(ex.hashCode(), ex.message.toString()))
+            Result.Error(ExecutionError(-2, ex.message.toString()))
         }
     }
 
@@ -345,7 +384,7 @@ class PreBuildPlugin : Plugin<Project> {
      * @see ProcessMetadata
      * @see Process.waitFor
      */
-    fun processBuilder(workingDir: File? = null, vararg args: String): ProcessMetadata {
+    private fun processBuilder(workingDir: File? = null, vararg args: String): ProcessMetadata {
         val processBuilder = ProcessBuilder(*args)
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .redirectError(ProcessBuilder.Redirect.PIPE)

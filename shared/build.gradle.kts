@@ -1,4 +1,3 @@
-import com.hifnawy.pre.build.PreBuildPluginEx
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
@@ -21,8 +20,6 @@ private val localPropertiesFile = rootProject.file("local.properties")
  * @see com.android.build.api.dsl.ApplicationBuildType.signingConfig
  */
 private var isSigningConfigEnabled = false
-
-val preBuildPlugin = extensions.getByType<PreBuildPluginEx>()
 
 plugins {
     alias(libs.plugins.pre.build)

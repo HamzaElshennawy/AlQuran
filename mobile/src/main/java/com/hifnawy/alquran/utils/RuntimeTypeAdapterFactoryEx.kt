@@ -88,6 +88,8 @@ object RuntimeTypeAdapterFactoryEx {
 
         this.allSealedLeafSubclasses.forEach { kSubclass ->
             val tag = kSubclass.simpleName?.lowercase()
+
+            @Suppress("UNCHECKED_CAST")
             factory = factory.registerSubtype(kSubclass.java as Class<T>, tag)
         }
 

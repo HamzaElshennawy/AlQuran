@@ -1,6 +1,5 @@
 import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
-import com.hifnawy.pre.build.PreBuildPluginEx
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
@@ -40,18 +39,6 @@ private var isDebuggingEnabled = false
  * @see ApplicationBuildType.signingConfig
  */
 private var isSigningConfigEnabled = false
-
-/**
- * An instance of the `PreBuildPluginEx` extension.
- *
- * This property provides access to the custom tasks and configurations defined
- * by the `pre-build` plugin. It is used here to establish a dependency between
- * the standard `preBuild` task and the custom `generateSampleData` task, ensuring
- * that sample data is generated before the build proceeds.
- *
- * @see PreBuildPluginEx
- */
-val preBuildPlugin = extensions.getByType<PreBuildPluginEx>()
 
 plugins {
     alias(libs.plugins.pre.build)
@@ -240,6 +227,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-tasks.named("preBuild") {
-    dependsOn(preBuildPlugin.generateSampleData)
+afterEvaluate {
+    tasks.named("assembleDebug") {
+        dependsOn(preBuildPlugin.generateSampleData)
+    }
 }
