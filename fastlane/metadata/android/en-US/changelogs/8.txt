@@ -1,0 +1,48 @@
+* Feat(UI): Add screen transition animations
+   > This commit enhances the user experience by adding slide and fade animations to the screen transitions within the `NavHost`.
+   > - **`NavigationStack.kt`:**
+   >     - Configured the `enterTransition`, `exitTransition`, `popEnterTransition`, and `popExitTransition` parameters for the `NavHost` composable.
+   >     - Implemented a combination of a horizontal slide and a fade effect for all navigation actions, with a duration of 300ms.
+------------------------------
+Commit: 06ea19b
+* Refactor(Error): Make `Result` and `Error` classes serializable
+   > This commit makes the `Result`, `Error`, and `DataError` sealed interfaces and all their subclasses serializable. This is a foundational change to allow these states to be passed between components, such as across process boundaries or saved in a bundle for composables using `rememberSaveable`.
+   > - **`shared/repository/Result.kt`**:
+   >     - Implemented `Serializable` for `Result`, `Error`, `DataError`, `NetworkError`, `LocalError`, and `ParseError` and all their nested data classes.
+   > - **`mobile/view/Error.kt`**:
+   >     - Updated the `ErrorView` composable to improve its visual presentation.
+   >     - The error message text is now larger, centered, and colored to match the theme's error color. It also includes a marquee effect for long messages.
+   >     - The error icon is now tinted with the theme's error color.
+   >     - Added padding around the error view content.
+------------------------------
+Commit: efcd1bc
+* Refactor: Clean up logging and fix seek functionality
+   > This commit improves the codebase by removing redundant logging statements and fixing a bug in the media seeking functionality.
+   > - **`QuranMediaService.kt`:**
+   >     - Removed several `Timber.debug()` logging statements from `onIsPlayingChanged`, `updateMetadata`, `setMediaSessionState`, and `seekTo` to reduce log noise.
+   > - **`MediaViewModel.kt`:**
+   >     - Fixed a bug introduced in the previous commit in the `seekTo` function where the `startService` call was missing, preventing the seek action from being communicated to the `QuranMediaService`.
+   >     - Removed unnecessary logging and cleaned up code formatting in various functions, including `playSurah`, `skipToNextSurah`, `skipToPreviousSurah`, and `onServiceStatusUpdated`.
+------------------------------
+Commit: b56e540
+* Refactor(Player): Decouple `PlayerContainer` and improve state management
+   > This commit refactors the `PlayerContainer` composable to decouple it from the `MediaViewModel`, making it a more reusable and stateless component. State management has been centralized in the `MediaViewModel` using a new `PlayerStateBuilder` and a unified `updateState` function.
+   > - **`PlayerContainer.kt`:**
+   >     - `PlayerContainer` is now a stateless composable that receives its state (`PlayerState`) and event callbacks (e.g., `onCloseClicked`, `onExpand`, `onSeekProgress`) as parameters.
+   >     - Added extensive KDoc documentation to clarify the responsibilities of `PlayerContainer`, `Content`, and `CrossfadePlayer` composables.
+   >     - Improved the crossfade logic in `CrossfadePlayer` for a smoother transition between `MiniPlayer` and `FullScreenPlayer`.
+   >     - Renamed internal composables `PlayerContainerContent` to `Content` and `Player` to `CrossfadePlayer` for better clarity.
+   >     - Added `@Preview` composables for both phone and tablet layouts.
+   > - **`MediaViewModel.kt`:**
+   >     - Introduced a `PlayerStateBuilder` class and an `updateState` function to provide a single, immutable way of updating `playerState`. This ensures proper state propagation and recomposition.
+   >     - All direct mutations of `playerState` (e.g., `playerState.copy(...)`) have been replaced with calls to `updateState`.
+   >     - Made the `playerState` setter `private` to enforce state updates through the `updateState` function.
+   >     - Improved the `toString()` implementation in `PlayerState` for better debug logging.
+   > - **`NavigationStack.kt`:**
+   >     - Updated the `PlayerContainer` call site to pass the state and lambda functions from the `MediaViewModel`, connecting the ViewModel's logic to the now-stateless UI component.
+   > - **Other Changes:**
+   >     - Updated `RecitersScreen.kt` and `SurahsScreen.kt` to use the new `mediaViewModel.updateState` function.
+   >     - Added a `Duration.asSystemTimestamp` extension function in `DurationEx.kt` for formatting timestamps in logs.
+------------------------------
+
+**Full Changelog**: https://github.com/abdalmoniem/AlQuran/compare/v0.0.7...v0.0.7.1

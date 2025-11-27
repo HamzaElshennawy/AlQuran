@@ -1,11 +1,16 @@
 package com.hifnawy.alquran.view
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -32,7 +37,18 @@ fun NavigationStack() {
                 .statusBarsPadding()
                 .displayCutoutPadding()
     ) {
-        NavHost(navController = navController, startDestination = Screen.Reciters.route) {
+        val animationDuration = 300
+        val fadeAnimationSpec = tween<Float>(animationDuration)
+        val slideAnimationSpec = tween<IntOffset>(animationDuration)
+
+        NavHost(
+                navController = navController,
+                startDestination = Screen.Reciters.route,
+                enterTransition = { fadeIn(fadeAnimationSpec) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, slideAnimationSpec) },
+                exitTransition = { fadeOut(fadeAnimationSpec) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, slideAnimationSpec) },
+                popEnterTransition = { fadeIn(fadeAnimationSpec) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, slideAnimationSpec) },
+                popExitTransition = { fadeOut(fadeAnimationSpec) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, slideAnimationSpec) }
+        ) {
             composable(route = Screen.Reciters.route) {
                 RecitersScreen(mediaViewModel = mediaViewModel, navController = navController)
             }
