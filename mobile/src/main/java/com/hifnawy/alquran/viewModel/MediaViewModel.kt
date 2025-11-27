@@ -96,8 +96,8 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
                 putExtra(QuranMediaService.Extras.EXTRA_RECITER.name, selectedReciter)
                 putExtra(QuranMediaService.Extras.EXTRA_MOSHAF.name, selectedMoshaf)
                 putExtra(QuranMediaService.Extras.EXTRA_SURAH.name, selectedSurah)
-
                 quranApplication.startService(this)
+
                 updateState {
                     isVisible = true
                     isBuffering = true
@@ -140,7 +140,6 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
      */
     fun skipToNextSurah(): Unit = Intent(quranApplication, QuranMediaService::class.java).run {
         action = QuranMediaService.Actions.ACTION_SKIP_TO_NEXT.name
-
         quranApplication.startService(this)
     }
 
@@ -157,7 +156,6 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
      */
     fun skipToPreviousSurah(): Unit = Intent(quranApplication, QuranMediaService::class.java).run {
         action = QuranMediaService.Actions.ACTION_SKIP_TO_PREVIOUS.name
-
         quranApplication.startService(this)
     }
 
@@ -173,6 +171,7 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
     fun seekTo(position: Long): Unit = Intent(quranApplication, QuranMediaService::class.java).run {
         action = QuranMediaService.Actions.ACTION_SEEK_PLAYBACK_TO.name
         putExtra(QuranMediaService.Extras.EXTRA_SEEK_POSITION.name, position)
+        quranApplication.startService(this)
 
         updateState { currentPositionMs = position }
     }
@@ -223,8 +222,7 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
      * @param block [PlayerStateBuilder.() -> Unit][block] A lambda function that receives a [PlayerStateBuilder] and defines the
      * changes to be applied to the current state.
      */
-    fun updateState(block: PlayerStateBuilder.() -> Unit) = PlayerStateBuilder(playerState)
-        .apply(block).build().also { playerState = it }
+    fun updateState(block: PlayerStateBuilder.() -> Unit) = PlayerStateBuilder(playerState).apply(block).build().also { playerState = it }
 
     /**
      * Callback method invoked when the status of the [QuranMediaService] changes.
@@ -244,7 +242,7 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
      * [QuranMediaService].
      */
     override fun onServiceStatusUpdated(status: ServiceStatus) {
-        Timber.debug("status: $status")
+        Timber.debug("$status")
 
         when (status) {
             is ServiceStatus.Paused,
@@ -269,8 +267,6 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
 
             is ServiceStatus.Ended     -> skipToNextSurah()
         }
-
-        Timber.debug("surah: ${playerState.surah}")
     }
 }
 

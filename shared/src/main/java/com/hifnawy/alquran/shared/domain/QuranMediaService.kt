@@ -604,7 +604,6 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         super.onIsPlayingChanged(isPlaying)
 
-        Timber.d("isPlaying: $isPlaying")
         when {
             isPlaying -> setMediaSessionState(MediaSessionState.PLAYING)
             else      -> setMediaSessionState(MediaSessionState.STOPPED)
@@ -768,8 +767,6 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
             else               -> 0
         }
 
-        Timber.debug("duration: $duration")
-
         val metadata = MediaMetadataCompat.Builder().run {
             putText(MediaMetadataCompat.METADATA_KEY_TITLE, title)
             putText(MediaMetadataCompat.METADATA_KEY_ARTIST, currentReciter?.name)
@@ -830,7 +827,6 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
         playbackStateBuilder.setState(mediaSessionState.state, player.currentPosition, playBackSpeed)
 
-        Timber.debug("newState: ${mediaSessionState.name}")
         mediaSession.setPlaybackState(playbackStateBuilder.build())
     }
 
@@ -953,8 +949,6 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      */
     fun seekTo(position: Long) {
         if (position < 0) return
-
-        Timber.debug("seekTo: $position")
 
         player.seekTo(position)
         currentSurahPosition = position
