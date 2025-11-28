@@ -7,19 +7,19 @@
     <string name="surah_name">اسم السورة</string>
     <string name="reciter_name">اسم القارئ</string>
     <plurals name="moshaf_count">
-        <item quantity="one">مصحف واحد</item>
+        <item quantity="zero">لا توجد مصاحف</item>
+        <item quantity="one">مصحفٌ واحدٌ</item>
         <item quantity="two">مصحفان</item>
         <item quantity="few">%d مصاحف</item>
         <item quantity="many">%d مصحف</item>
-        <item quantity="zero">بدون مصاحف</item>
         <item quantity="other">%d مصحف</item>
     </plurals>
     <plurals name="surah_count">
-        <item quantity="one">سورة واحدة</item>
+        <item quantity="zero">لا توجد سور</item>
+        <item quantity="one">سورةٌ واحدةٌ</item>
         <item quantity="two">سورتان</item>
-        <item quantity="few">%d سور</item>
+        <item quantity="few">%d ٍسور</item>
         <item quantity="many">%d سورة</item>
-        <item quantity="zero">بدون سور</item>
         <item quantity="other">%d سورة</item>
     </plurals>
     <string name="surah_makkia">مكية</string>

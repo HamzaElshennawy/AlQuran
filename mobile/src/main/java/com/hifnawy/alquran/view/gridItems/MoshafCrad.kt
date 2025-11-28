@@ -23,15 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
+import com.hifnawy.alquran.utils.arabicPluralStringResource
 import com.hifnawy.alquran.utils.sampleReciters
 import com.hifnawy.alquran.view.player.AnimatedAudioBars
+import com.hifnawy.alquran.shared.R as Rs
 
 /**
  * A Composable function that displays an elevated card for a specific Moshaf (a version of the Quran recitation).
@@ -82,7 +85,8 @@ fun MoshafCard(
                         .weight(1f)
                         .padding(vertical = 10.dp)
                         .basicMarquee(),
-                    text = "${moshaf.name} - ${pluralStringResource(R.plurals.surah_count, moshaf.surahsCount, moshaf.surahsCount)}",
+                    text = "${moshaf.name} - ${arabicPluralStringResource(R.plurals.surah_count, moshaf.surahsCount)}",
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
             )
 
             AnimatedVisibility(

@@ -28,6 +28,7 @@ import com.hifnawy.alquran.view.DataErrorScreen
 import com.hifnawy.alquran.view.PullToRefreshIndicator
 import com.hifnawy.alquran.view.grids.SurahsGrid
 import com.hifnawy.alquran.viewModel.MediaViewModel
+import com.hifnawy.alquran.viewModel.PlayerState
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -101,6 +102,7 @@ fun SurahsScreen(
             onRefresh = { isLoading = true }
     ) {
         Content(
+                state = mediaViewModel.playerState,
                 isLoading = isLoading,
                 dataError = dataError,
                 reciter = reciter,
@@ -129,6 +131,7 @@ fun SurahsScreen(
  */
 @Composable
 private fun Content(
+        state: PlayerState,
         isLoading: Boolean,
         dataError: DataError?,
         reciter: Reciter,
@@ -143,11 +146,13 @@ private fun Content(
 
         else                                                       -> SurahsGrid(
                 reciter = reciter,
+                moshaf = moshaf,
                 reciterSurahs = reciterSurahs,
                 isSkeleton = isLoading,
-                isPlaying = mediaViewModel.playerState.isPlaying,
-                playingSurahId = mediaViewModel.playerState.surah?.id,
-                playingReciterId = mediaViewModel.playerState.reciter?.id
+                isPlaying = state.isPlaying,
+                playingSurahId = state.surah?.id,
+                playingMoshafId = state.moshaf?.id,
+                playingReciterId = state.reciter?.id
         ) { surah ->
             mediaViewModel.playMedia(reciter, moshaf, moshafServer, surah)
         }

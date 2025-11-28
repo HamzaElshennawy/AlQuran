@@ -33,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,6 +44,7 @@ import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
 import com.hifnawy.alquran.shared.model.asReciterId
 import com.hifnawy.alquran.utils.TextUtil.highlightMatchingText
+import com.hifnawy.alquran.utils.arabicPluralStringResource
 import com.hifnawy.alquran.utils.sampleReciters
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.player.AnimatedAudioBars
@@ -304,9 +304,9 @@ private fun MoshafCount(
             if (moshafCount == null) return
             Text(
                     modifier = Modifier.basicMarquee(),
-                    text = pluralStringResource(R.plurals.moshaf_count, moshafCount, moshafCount),
+                    text = arabicPluralStringResource(R.plurals.moshaf_count, moshafCount),
                     fontSize = 30.sp,
-                    fontFamily = FontFamily(Font(Rs.font.diwany_1))
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
             )
         }
     }

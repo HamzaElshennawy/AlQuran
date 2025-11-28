@@ -1,15 +1,19 @@
 package com.hifnawy.alquran.view.grids
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -31,30 +35,40 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hifnawy.alquran.R
+import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
 import com.hifnawy.alquran.shared.model.ReciterId
 import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.utils.LazyGridScopeEx.gridItems
 import com.hifnawy.alquran.utils.ModifierEx.AnimationType
 import com.hifnawy.alquran.utils.ModifierEx.animateItemPosition
+import com.hifnawy.alquran.utils.arabicPluralStringResource
 import com.hifnawy.alquran.view.SearchBar
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.gridItems.SurahCard
+import kotlin.math.abs
 import com.hifnawy.alquran.shared.R as Rs
 
 @Composable
 fun SurahsGrid(
         modifier: Modifier = Modifier,
         reciter: Reciter,
+        moshaf: Moshaf,
         reciterSurahs: List<Surah>,
         isSkeleton: Boolean = false,
         isPlaying: Boolean = false,
         playingSurahId: Int? = null,
+        playingMoshafId: Int? = null,
         playingReciterId: ReciterId? = null,
         onSurahCardClick: (surah: Surah) -> Unit
 ) {
@@ -76,10 +90,11 @@ fun SurahsGrid(
                 }
             }
 
-            ReciterName(
+            TitleBar(
                     isSkeleton = isSkeleton,
                     brush = brush,
-                    reciter = reciter
+                    reciter = reciter,
+                    moshaf = moshaf
             )
 
             Spacer(modifier = Modifier.size(5.dp))
@@ -117,7 +132,7 @@ fun SurahsGrid(
                                 .onSizeChanged { size -> surahCardHeight = size.height },
                             surah = surah,
                             isSkeleton = isSkeleton,
-                            isPlaying = isPlaying && playingSurahId == surah?.id && playingReciterId == reciter.id,
+                            isPlaying = isPlaying && playingSurahId == surah?.id && playingMoshafId == moshaf.id && playingReciterId == reciter.id,
                             searchQuery = searchQuery,
                             brush = brush,
                             onClick = onSurahCardClick
@@ -173,8 +188,8 @@ private fun ScrollToPlayingSurah(
         surahCardHeight: Int
 ) {
     val density = LocalDensity.current
-    val miniPlayerHeight = with(density) { 90.dp.toPx() }.toInt()
-    val miniPlayerBottomPadding = with(density) { 30.dp.toPx() }.toInt()
+    val miniPlayerHeight = with(density) { 90.dp.toPx() }
+    val miniPlayerBottomPadding = with(density) { 30.dp.toPx() }
 
     LaunchedEffect(isPlaying, lazyGridHeight) {
         if (!isPlaying) return@LaunchedEffect
@@ -186,50 +201,138 @@ private fun ScrollToPlayingSurah(
         val index = filteredSurahs.indexOfFirst { surah -> surah.id == playingSurahId }
         if (index < 0) return@LaunchedEffect
 
-        val isVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == index }
         val itemInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
         val miniPlayerTopEdge = lazyGridHeight - miniPlayerHeight - miniPlayerBottomPadding
-        val targetScrollOffset = (lazyGridHeight / 2) - (surahCardHeight / 2) - (miniPlayerHeight / 2) - miniPlayerBottomPadding
 
-        if (!shouldScroll(isVisible = isVisible, itemInfo = itemInfo, miniPlayerTopEdge = miniPlayerTopEdge, targetScrollOffset = targetScrollOffset)) return@LaunchedEffect
-        listState.animateScrollToItem(index = index, scrollOffset = -targetScrollOffset)
+        val availableViewportHeight = lazyGridHeight - miniPlayerHeight - (miniPlayerBottomPadding * 2.1f)
+        val scrollDistance = getScrollDistance(
+                itemInfo = itemInfo,
+                surahCardHeight = surahCardHeight,
+                availableViewportHeight = availableViewportHeight
+        )
+
+        if (!shouldScroll(itemInfo = itemInfo, miniPlayerTopEdge = miniPlayerTopEdge, scrollDistance = scrollDistance)) return@LaunchedEffect
+        executeScroll(
+                index = index,
+                itemInfo = itemInfo,
+                listState = listState,
+                scrollDistance = scrollDistance,
+                surahCardHeight = surahCardHeight,
+                availableViewportHeight = availableViewportHeight
+        )
     }
 }
 
-private fun shouldScroll(
-        isVisible: Boolean,
-        itemInfo: LazyGridItemInfo?,
-        miniPlayerTopEdge: Int,
-        targetScrollOffset: Int
-) = when {
-    !isVisible                                                                         -> true
-    itemInfo != null && itemInfo.offset.y + itemInfo.size.height > miniPlayerTopEdge   -> true
-    itemInfo != null && itemInfo.offset.y + itemInfo.size.height != targetScrollOffset -> true
+private fun getScrollDistance(surahCardHeight: Int, itemInfo: LazyGridItemInfo?, availableViewportHeight: Float) = when {
+    itemInfo != null -> (itemInfo.offset.y + surahCardHeight / 2f) - (availableViewportHeight / 2f)
+    else             -> 0f
+}
 
-    else                                                                               -> false
+private fun shouldScroll(scrollDistance: Float, miniPlayerTopEdge: Float, itemInfo: LazyGridItemInfo?) = when {
+    itemInfo == null -> true
+    itemInfo.offset.y + itemInfo.size.height > miniPlayerTopEdge -> true
+    abs(scrollDistance) > 1f -> true
+    else -> false
+}
+
+private suspend fun executeScroll(
+        index: Int,
+        surahCardHeight: Int,
+        scrollDistance: Float,
+        listState: LazyGridState,
+        itemInfo: LazyGridItemInfo?,
+        availableViewportHeight: Float
+) = listState.run {
+    when (itemInfo) {
+        null -> {
+            val scrollOffset = (availableViewportHeight / 2f) - (surahCardHeight / 2f)
+            scrollToItem(index = index, scrollOffset = 0)
+            animateScrollBy(value = -scrollOffset, animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing))
+        }
+
+        else -> animateScrollBy(value = scrollDistance, animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing))
+    }
 }
 
 @Composable
-private fun ReciterName(isSkeleton: Boolean, brush: Brush?, reciter: Reciter) {
-    when {
-        isSkeleton -> {
-            if (brush == null) return
+private fun TitleBar(
+        isSkeleton: Boolean,
+        brush: Brush?,
+        reciter: Reciter,
+        moshaf: Moshaf
+) {
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
 
+    val reciterText = reciter.name
+    val reciterStyle = TextStyle(
+            fontSize = 50.sp,
+            fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2))
+    )
+
+    val moshafText = "${moshaf.name} - ${arabicPluralStringResource(R.plurals.surah_count, moshaf.surahsCount)}"
+    val moshafStyle = TextStyle(
+            fontSize = 25.sp,
+            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
+    )
+
+    val reciterLayoutResult: TextLayoutResult = remember(reciterText, reciterStyle) {
+        textMeasurer.measure(
+                text = AnnotatedString(reciterText),
+                style = reciterStyle,
+                constraints = Constraints(maxWidth = Int.MAX_VALUE)
+        )
+    }
+
+    val moshafLayoutResult: TextLayoutResult = remember(moshafText, moshafStyle) {
+        textMeasurer.measure(
+                text = AnnotatedString(moshafText),
+                style = moshafStyle,
+                constraints = Constraints(maxWidth = Int.MAX_VALUE)
+        )
+    }
+
+    val reciterHeight = with(density) { reciterLayoutResult.size.height.toDp() }
+    val moshafHeight = with(density) { moshafLayoutResult.size.height.toDp() }
+    val reciterWidth = with(density) { reciterLayoutResult.size.width.toDp() }
+    val moshafWidth = with(density) { moshafLayoutResult.size.width.toDp() }
+
+    when {
+        isSkeleton -> Column {
+            if (brush == null) return
             Spacer(
                     modifier = Modifier
-                        .fillMaxWidth(0.45f)
-                        .height(60.dp)
+                        .width(reciterWidth)
+                        .height(reciterHeight)
                         .clip(RoundedCornerShape(20.dp))
+                        .background(brush)
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(
+                    modifier = Modifier
+                        .width(moshafWidth)
+                        .height(moshafHeight)
+                        .clip(RoundedCornerShape(15.dp))
                         .background(brush)
             )
         }
 
-        else       -> Text(
-                text = reciter.name,
-                fontSize = 50.sp,
-                fontFamily = FontFamily(Font(Rs.font.decotype_thuluth_2)),
-                color = MaterialTheme.colorScheme.onSurface
-        )
+        else       -> Column {
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = reciterText,
+                    style = reciterStyle,
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = moshafText,
+                    style = moshafStyle,
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+
+        }
     }
 }
 
