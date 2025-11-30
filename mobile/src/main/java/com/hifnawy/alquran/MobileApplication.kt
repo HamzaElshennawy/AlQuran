@@ -2,8 +2,10 @@ package com.hifnawy.alquran
 
 import com.hifnawy.alquran.shared.QuranApplication
 import com.hifnawy.alquran.shared.domain.ServiceStatus
+import com.hifnawy.alquran.shared.utils.DurationExtensionFunctions.asSystemTimestamp
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import com.hifnawy.alquran.view.player.widgets.PlayerWidget
+import com.hifnawy.alquran.view.player.widgets.PlayerWidgetManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -66,7 +68,7 @@ class MobileApplication : QuranApplication() {
 
         // TODO: Load the last status from the data store
         widgetUpdateScope.launch {
-            async { PlayerWidget.updateGlanceWidgets(this@MobileApplication, status = ServiceStatus.Stopped) }.await()
+            async { PlayerWidgetManager.updateGlanceWidgets(this@MobileApplication, status = ServiceStatus.Stopped) }.await()
         }
     }
 
@@ -85,8 +87,10 @@ class MobileApplication : QuranApplication() {
         super.notifyQuranServiceObservers(status)
 
         widgetUpdateScope.launch {
-            Timber.debug("${System.currentTimeMillis().milliseconds}: Updating glance widgets...")
-            async { PlayerWidget.updateGlanceWidgets(this@MobileApplication, status) }.await()
+            Timber.debug("${System.currentTimeMillis().milliseconds.asSystemTimestamp}: Updating glance widgets...")
+            val updateJob = PlayerWidgetManager.updateGlanceWidgets(this@MobileApplication, status)
+
+            updateJob?.join()
         }
 
         // TODO: Store the status in a data store for later use

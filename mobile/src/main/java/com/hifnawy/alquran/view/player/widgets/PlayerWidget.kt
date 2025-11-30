@@ -1,19 +1,16 @@
 package com.hifnawy.alquran.view.player.widgets
 
 import android.app.ActivityManager
-import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import android.widget.RemoteViews
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
-import androidx.glance.ExperimentalGlanceApi
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -30,9 +27,6 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.runComposition
-import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.color.ColorProvider
 import androidx.glance.currentState
@@ -69,20 +63,17 @@ import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.error
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.warn
 import com.hifnawy.alquran.shared.utils.SerializableExt.Companion.asJsonString
+import com.hifnawy.alquran.utils.GlanceIdEx.appWidgetId
 import com.hifnawy.alquran.utils.sampleReciters
 import com.hifnawy.alquran.utils.sampleSurahs
 import com.hifnawy.alquran.view.activities.MainActivity
-import com.hifnawy.alquran.view.player.widgets.PlayerWidget.Companion.appWidgetId
-import com.hifnawy.alquran.view.player.widgets.PlayerWidget.Companion.updateGlanceWidgets
 import com.hifnawy.alquran.view.player.widgets.PlayerWidgetBitmaps.defaultSurahBitmap
 import com.hifnawy.alquran.view.player.widgets.PlayerWidgetBitmaps.defaultSurahBlurredBitmap
 import com.hifnawy.alquran.view.player.widgets.PlayerWidgetBitmaps.surahImages
+import com.hifnawy.alquran.view.player.widgets.ToggleMediaAction.ActionParams.PARAM_MOSHAF
+import com.hifnawy.alquran.view.player.widgets.ToggleMediaAction.ActionParams.PARAM_RECITER
+import com.hifnawy.alquran.view.player.widgets.ToggleMediaAction.ActionParams.PARAM_SURAH
 import com.hifnawy.alquran.view.theme.WidgetTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import com.hifnawy.alquran.shared.R as Rs
 
@@ -93,7 +84,7 @@ import com.hifnawy.alquran.shared.R as Rs
  * for play/pause, skip to next, and skip to previous. It interacts with the [QuranMediaService]
  * to control media playback and reflects the service's current status.
  *
- * The widget's state, defined by [PlayerWidgetState], is updated via the [updateGlanceWidgets]
+ * The widget's state, defined by [PlayerWidgetState], is updated via the [PlayerWidgetManager.updateGlanceWidgets]
  * static method, which is called by the service when media information changes. Clicking on the
  * widget opens the [MainActivity].
  *
@@ -104,154 +95,6 @@ import com.hifnawy.alquran.shared.R as Rs
  * @see PlayerWidgetState
  */
 class PlayerWidget : GlanceAppWidget() {
-
-    /**
-     * Companion object for the [PlayerWidget] class.
-     *
-     * This object holds utility functions and properties that are related to the [PlayerWidget]
-     * but are not specific to an instance of it. It's primarily used for managing and
-     * updating widget states across all instances of the [PlayerWidget].
-     *
-     * Key functionalities include:
-     * - A private extension property to safely extract the [appWidgetId] from a [GlanceId].
-     * - The [updateGlanceWidgets] function, which receives a [ServiceStatus] update from the
-     *   [QuranMediaService] and propagates the new state to all active [PlayerWidget]
-     *   instances. This ensures the UI of all widgets remains synchronized with the
-     *   media player's state.
-     *
-     * Usage of this companion object centralizes the logic for widget updates, making it
-     * easier to manage and debug interactions between the background media service and the
-     * home screen widgets.
-     */
-    companion object {
-
-        /**
-         * A private extension property on [GlanceId] to extract the underlying `appWidgetId`.
-         *
-         * This is a workaround using reflection to access the private `appWidgetId` field
-         * within the [GlanceId] class. This is necessary because the `appWidgetId` is not
-         * publicly exposed, but it's useful for logging and debugging purposes to identify
-         * which specific widget instance is being updated or composed.
-         *
-         * **Warning:** This implementation relies on the internal structure of the `GlanceId`
-         * class and may break in future versions of the Glance library if the field name
-         * or class structure changes. Use with caution.
-         *
-         * @return [Int] The integer ID of the AppWidget associated with this [GlanceId].
-         */
-        private val GlanceId.appWidgetId get() = this::class.java.getDeclaredField("appWidgetId").apply { isAccessible = true }.getInt(this)
-
-        /**
-         * Updates the state of all active [PlayerWidget] instances.
-         *
-         * This function is called by the [QuranMediaService] whenever there is a change
-         * in the media playback status (e.g., new surah, play/pause state change). It receives
-         * the new [ServiceStatus], converts it into a [PlayerWidgetState], and then updates
-         * each active widget instance.
-         *
-         * The function performs the following steps:
-         * 1. Retrieves all `GlanceId`s for the `PlayerWidget` class.
-         * 2. Ignores the update if there are no active widgets or if the status is not `ServiceStatus.MediaInfo`.
-         * 3. Creates a new `PlayerWidgetState` from the provided `status`.
-         * 4. Iterates through each `glanceId` and updates its state in the datastore, but only if the new state is different from the old one.
-         * 5. If any widget's state was changed, it triggers a UI update for all widgets by calling [GlanceAppWidget.updateAll].
-         *
-         * @param context [Context] The application [Context], used to get the [GlanceAppWidgetManager].
-         * @param status [ServiceStatus] The latest [ServiceStatus] from the media service. Only [ServiceStatus.MediaInfo] will trigger a state update.
-         * @param forceUpdate [Boolean] Whether to force an update of all widgets, even if the state has not changed.
-         */
-        suspend fun updateGlanceWidgets(context: Context, status: ServiceStatus, forceUpdate: Boolean = false) {
-            val manager = GlanceAppWidgetManager(context)
-            val glanceIds = manager.getGlanceIds(PlayerWidget::class.java)
-            val appWidgetIds = glanceIds.map { it.appWidgetId }.toTypedArray().contentToString()
-            var anyStateChanged = false
-
-            if (glanceIds.isEmpty()) return
-            if (status !is ServiceStatus.MediaInfo) return
-
-            val newState = PlayerWidgetState(reciter = status.reciter, moshaf = status.moshaf, surah = status.surah, status = status)
-
-            glanceIds.forEach { glanceId ->
-                try {
-                    updateAppWidgetState(context, PlayerWidgetStateDefinition, glanceId) { oldState ->
-                        val currentStateChanged = oldState != newState
-                        anyStateChanged = anyStateChanged || currentStateChanged
-
-                        when {
-                            currentStateChanged -> newState
-                            else                -> oldState
-                        }
-                    }
-                } catch (ex: IllegalArgumentException) {
-                    // Log the error but ignore the dead widget, allowing others to update.
-                    Timber.error(ex.toString())
-                    Timber.error("Failed to update state for appWidgetId ${glanceId.appWidgetId}. Widget is likely deleted!")
-                }
-            }
-
-            if (!anyStateChanged && !forceUpdate) return /* Timber.debug("No state changes! Skipping UI update!") */
-
-            executeUpdate(context, glanceIds)
-            Timber.debug("Updated $appWidgetIds glance widgets' states to ${newState.status?.javaClass?.simpleName}")
-        }
-
-        /**
-         * Executes a manual update for a list of Glance widgets.
-         *
-         * This function bypasses the standard `updateAll` or `update` methods of `GlanceAppWidget`,
-         * which can be slow and subject to locking delays (a "session lock" that can last up to 50 seconds),
-         * especially during frequent updates from a service.
-         *
-         * Instead, it manually recomposes each widget's UI to get a [RemoteViews] object and then
-         * uses the [AppWidgetManager] to apply this [RemoteViews] object directly to the widget instance.
-         * This results in a much faster and more reliable UI update.
-         *
-         * The process for each widget is:
-         * - Launch a new coroutine to process widgets concurrently.
-         * - Call [PlayerWidget.runComposition] to generate the [RemoteViews].
-         * - Use [AppWidgetManager.updateAppWidget]
-         *    to push the update to the specific widget on the home screen.
-         * - Catches, and logs [IllegalStateException] which can be thrown by [runComposition] if the widget is not in a
-         *    valid state to be composed, or is already in the middle of another update, preventing the app from crashing.
-         *
-         * If we look at the update code inside the Glance library, it talks about session and lock,
-         * the logs will also say something similar.
-         *
-         * - Once the widget is updated from the app or a new widget is created, the worker session
-         * (produced by Glance lib) is locked and released after ***45-50*** sec.!!!
-         * - Any updates made during that ***45-50*** second interval are ignored, so for a successful update,
-         * the app needs to wait for that time window to pass. You can confirm this time window by watching the
-         * for the following in logcat:
-         *
-         * ```
-         * Worker result SUCCESS for Work [ id=69cc3029-d1b1-4e9a-9084-108baa942a49, tags={ androidx.glance.session.SessionWorker } ]
-         *```
-         *
-         * - I don't know much about session and locks but all this is true as per my testing.
-         *
-         * so in short, the [PlayerWidget.updateAll] or even [PlayerWidget.update] will be very slow to update the UI in time.
-         *
-         * so the best way I found was to update the widget manually using [AppWidgetManager.updateAppWidget], but the trick is to get
-         * the remote view from the [PlayerWidget.runComposition] method and then pass it to the [AppWidgetManager.updateAppWidget] method.
-         *
-         * @param context [Context] The application [Context].
-         * @param glanceIds [List< GlanceId >][List] A [List] of [GlanceId]s for the widgets that need to be updated.
-         */
-        @OptIn(ExperimentalGlanceApi::class)
-        private fun executeUpdate(context: Context, glanceIds: List<GlanceId>) = glanceIds.forEach { glanceId ->
-            // PlayerWidget().updateAll(context)
-            CoroutineScope(Dispatchers.Default).launch {
-                async {
-                    try {
-                        val remoteView = PlayerWidget().runComposition(context, glanceId).first()
-                        AppWidgetManager.getInstance(context).updateAppWidget(glanceId.appWidgetId, remoteView)
-                    } catch (_: IllegalStateException) {
-                        Timber.warn("Failed to update state for appWidgetId ${glanceId.appWidgetId}. Widget is likely pending an update!")
-                    }
-                }
-            }
-        }
-    }
 
     /**
      * Defines the state management for this widget.
@@ -325,14 +168,20 @@ class PlayerWidget : GlanceAppWidget() {
         provideContent {
             val state = currentState<PlayerWidgetState>()
             val reciter = state.reciter
+            val moshaf = state.moshaf
             val surah = state.surah
             val status = state.status
 
             val surahBitmap = surah?.let { surahImages[it.id].bitmap } ?: defaultSurahBitmap
             val surahBlurredBitmap = surah?.let { surahImages[it.id].blurredBitmap } ?: defaultSurahBlurredBitmap
 
-            Timber.debug("#${id.appWidgetId} Composing glance widget...")
-            Timber.debug("#${id.appWidgetId} Status: $status")
+            Timber.debug(
+                    "#${id.appWidgetId} Composing glance widget, " +
+                    "status: ${status?.javaClass?.simpleName}(" +
+                    "reciter=(${reciter?.id?.value}, ${reciter?.name}), " +
+                    "moshaf=(${moshaf?.id}, ${moshaf?.name}), " +
+                    "surah=(${surah?.id}, ${surah?.name}))..."
+            )
 
             WidgetTheme {
                 Content(
@@ -565,9 +414,9 @@ class PlayerWidget : GlanceAppWidget() {
                 onClick = actionRunCallback<ToggleMediaAction>(
                         parameters = when (status) {
                             is ServiceStatus.MediaInfo -> actionParametersOf(
-                                    ActionParameters.Key<String>(ToggleMediaAction.ActionParams.PARAM_RECITER.name) to status.reciter.asJsonString,
-                                    ActionParameters.Key<String>(ToggleMediaAction.ActionParams.PARAM_SURAH.name) to status.surah.asJsonString,
-                                    ActionParameters.Key<String>(ToggleMediaAction.ActionParams.PARAM_MOSHAF.name) to status.moshaf.asJsonString
+                                    ActionParameters.Key<String>(PARAM_RECITER.name) to status.reciter.asJsonString,
+                                    ActionParameters.Key<String>(PARAM_SURAH.name) to status.surah.asJsonString,
+                                    ActionParameters.Key<String>(PARAM_MOSHAF.name) to status.moshaf.asJsonString
                             )
 
                             else                       -> actionParametersOf()
@@ -755,9 +604,9 @@ class ToggleMediaAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Timber.debug("ToggleMediaAction")
 
-        val reciterJson = parameters.get<String>(ActionParameters.Key(ActionParams.PARAM_RECITER.name)) as String
-        val moshafJson = parameters.get<String>(ActionParameters.Key(ActionParams.PARAM_MOSHAF.name)) as String
-        val surahJson = parameters.get<String>(ActionParameters.Key(ActionParams.PARAM_SURAH.name)) as String
+        val reciterJson = parameters.get<String>(ActionParameters.Key(PARAM_RECITER.name)) ?: return
+        val moshafJson = parameters.get<String>(ActionParameters.Key(PARAM_MOSHAF.name)) ?: return
+        val surahJson = parameters.get<String>(ActionParameters.Key(PARAM_SURAH.name)) ?: return
 
         val reciter = Gson().fromJson(reciterJson, Reciter::class.java)
         val moshaf = Gson().fromJson(moshafJson, Moshaf::class.java)
@@ -818,6 +667,7 @@ class ToggleMediaAction : ActionCallback {
      * @property [PARAM_MOSHAF]: The key for the JSON string representation of the [Moshaf] object.
      */
     enum class ActionParams {
+
         /**
          * The key for the JSON string representation of the [Reciter] object.
          */

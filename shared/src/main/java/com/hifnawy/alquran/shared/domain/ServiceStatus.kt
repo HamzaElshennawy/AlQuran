@@ -76,13 +76,6 @@ sealed class ServiceStatus {
      * It inherits from [MediaInfo] to provide details about the media item that is currently
      * being buffered, including its current position and the total duration.
      *
-     * @param reciter [Reciter] The [Reciter] of the currently buffering surah.
-     * @param moshaf [Moshaf] The [Moshaf] (recitation style) of the currently buffering surah.
-     * @param surah [Surah] The [Surah] that is currently buffering.
-     * @param durationMs [Long] The total duration of the media in milliseconds.
-     * @param currentPositionMs [Long] The current playback position in milliseconds.
-     * @param bufferedPositionMs [Long] The position up to which the media has been buffered, in milliseconds.
-     *
      * @see ServiceStatus
      * @see MediaInfo
      * @see Playing
