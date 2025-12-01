@@ -1,5 +1,6 @@
 package com.hifnawy.alquran.view.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ fun FavoritesScreen() {
     Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceDim)
                 .statusBarsPadding()
                 .displayCutoutPadding()
                 .padding(16.dp),

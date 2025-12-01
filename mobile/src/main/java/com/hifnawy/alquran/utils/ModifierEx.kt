@@ -6,6 +6,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import com.hifnawy.alquran.utils.DeviceConfiguration.Companion.deviceConfiguration
 import com.hifnawy.alquran.utils.FlowEx.throttleFirst
 import com.hifnawy.alquran.utils.ModifierEx.AnimationType.FallDown
 import com.hifnawy.alquran.utils.ModifierEx.AnimationType.None
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.window.core.layout.WindowSizeClass
 
 /**
  * Util class providing extension functions for [Modifier].
@@ -61,6 +65,37 @@ object ModifierEx {
          * item [translationY][GraphicsLayerScope.translationY] will not be animated
          */
         None(0f)
+    }
+
+    /**
+     * Applies padding to a composable to accommodate the Input Method Editor (IME) or on-screen keyboard,
+     * ensuring that the content remains visible and is not obscured when the keyboard is displayed.
+     *
+     * This modifier uses [WindowAdaptiveInfo], [WindowSizeClass] and [deviceConfiguration] to determine
+     * if the keyboard should be accommodated. which includes system bars, display cutouts, and the IME. It then
+     * specifically applies padding only for the bottom inset, effectively pushing the content up by the height of the keyboard.
+     *
+     * It also applies the padding only when the device is not a compact device or a phone in landscape orientation. to help
+     * prevent the content from being obscured by the keyboard on compact devices and phones in landscape orientation.
+     *
+     * Example usage:
+     * ```
+     * Column(modifier = Modifier.fillMaxSize().safeImePadding()) {
+     *     // Content that should be pushed up by the keyboard
+     * }
+     * ```
+     *
+     * @return [Modifier] A [Modifier] that adds bottom padding equal to the IME's height.
+     *
+     * @see WindowAdaptiveInfo
+     * @see WindowSizeClass
+     * @see deviceConfiguration
+     */
+    fun Modifier.safeImePadding(windowAdaptiveInfo: WindowAdaptiveInfo) = when (windowAdaptiveInfo.windowSizeClass.deviceConfiguration) {
+        DeviceConfiguration.COMPACT,
+        DeviceConfiguration.PHONE_LANDSCAPE -> this
+
+        else                                -> imePadding()
     }
 
     /**

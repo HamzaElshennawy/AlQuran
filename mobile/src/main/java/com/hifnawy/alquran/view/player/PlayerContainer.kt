@@ -38,8 +38,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.critical
-import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
-import com.hifnawy.alquran.utils.FloatEx.isApproximately
 import com.hifnawy.alquran.utils.ModifierEx.verticalDraggable
 import com.hifnawy.alquran.utils.sampleReciters
 import com.hifnawy.alquran.utils.sampleSurahs
@@ -115,9 +113,11 @@ fun BoxScope.PlayerContainer(
 
     var lastSurahSelectionTimeStamp by rememberSaveable { mutableStateOf(state.surahSelectionTimeStamp) }
 
-    Timber.debug(state.toString())
+    // Timber.debug(state.toString())
 
-    LaunchedEffect(state.surahSelectionTimeStamp) {
+    LaunchedEffect(state.surahSelectionTimeStamp, state.isVisible) {
+        if (!state.isVisible) return@LaunchedEffect
+
         if (state.surahSelectionTimeStamp != lastSurahSelectionTimeStamp) {
             isExpanded = startExpanded
             lastSurahSelectionTimeStamp = state.surahSelectionTimeStamp
@@ -255,11 +255,11 @@ private fun BoxScope.Content(
 ) {
     val density = LocalDensity.current
 
-    val heightAnimationDuration = 300
-    val isBackHandlerEnabled = state.isVisible && heightPx.value isApproximately maxHeightPx within 5f
-    val heightAnimationSpec = tween<Float>(durationMillis = heightAnimationDuration, easing = FastOutLinearInEasing)
+    val isBackHandlerEnabled = state.isVisible && isExpanded
 
     LaunchedEffect(maxHeightPx) {
+        if (!state.isVisible) return@LaunchedEffect
+
         val target = when {
             isExpanded -> maxHeightPx
             else       -> minHeightPx
@@ -269,37 +269,26 @@ private fun BoxScope.Content(
     }
 
     LaunchedEffect(isExpanded, isSnapped, state.isVisible) {
-        if (!state.isVisible) {
-            heightPx.snapTo(0f)
-            return@LaunchedEffect
-        }
+        if (!state.isVisible) return@LaunchedEffect
 
-        val targetValue = when {
-            isExpanded -> maxHeightPx
-            else       -> minHeightPx
-        }
-
-        val isExpanding = heightPx.value < targetValue
-        when {
-            isExpanding -> onExpandStarted()
-            else        -> onMinimizeStarted()
-        }
-
-        heightPx.animateTo(targetValue = targetValue, animationSpec = heightAnimationSpec) {
-            val progress = ((value - minHeightPx) / (maxHeightPx - minHeightPx)).coerceIn(0f, 1f)
-            onHeightChanged(progress)
-        }
-
-        when {
-            isExpanding -> onExpandFinished()
-            else        -> onMinimizeFinished()
-        }
+        animatePlayer(
+                isExpanded = isExpanded,
+                minHeightPx = minHeightPx,
+                maxHeightPx = maxHeightPx,
+                heightPx = heightPx,
+                onHeightChanged = onHeightChanged,
+                onExpandStarted = onExpandStarted,
+                onExpandFinished = onExpandFinished,
+                onMinimizeStarted = onMinimizeStarted,
+                onMinimizeFinished = onMinimizeFinished
+        )
     }
 
     OnBackHandler(
             isBackHandlerEnabled = isBackHandlerEnabled,
             onBackStarted = onMinimizeStarted,
             onBackProgress = { progress ->
+                onHeightChanged(1f - progress)
                 val newHeightPx = (1f - progress) * (maxHeightPx - minHeightPx) + minHeightPx
                 heightPx.snapTo(newHeightPx)
             },
@@ -309,6 +298,7 @@ private fun BoxScope.Content(
             }
     )
 
+    if (!state.isVisible) return
     Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -335,6 +325,61 @@ private fun BoxScope.Content(
                 onTogglePlayback = onTogglePlayback,
                 onSkipToNextSurah = onSkipToNextSurah
         )
+    }
+}
+
+/**
+ * A suspend function that animates the player's height between its minimized and expanded states.
+ *
+ * It determines the target height based on the [isExpanded] flag and runs a coroutine to
+ * animate the [heightPx] [Animatable]. During the animation, it invokes callbacks to signal
+ * the start and end of the expansion/minimization process and continuously updates the
+ * height progress via [onHeightChanged].
+ *
+ * @param isExpanded [Boolean] `true` to animate to the expanded state, `false` to animate to the minimized state.
+ * @param minHeightPx [Float] The minimum height of the player in pixels (when minimized).
+ * @param maxHeightPx [Float] The maximum height of the player in pixels (when expanded).
+ * @param heightPx [Animatable<Float, *>][Animatable] The animatable float representing the player's current height.
+ * @param onHeightChanged [(Float) -> Unit][onHeightChanged] Callback invoked on each frame of the animation, providing the
+ *        current progress from 0.0 (minimized) to 1.0 (expanded).
+ * @param onExpandStarted [() -> Unit][onExpandStarted] Callback invoked when the expansion animation begins.
+ * @param onExpandFinished [() -> Unit][onExpandFinished] Callback invoked when the expansion animation completes.
+ * @param onMinimizeStarted [() -> Unit][onMinimizeStarted] Callback invoked when the minimization animation begins.
+ * @param onMinimizeFinished [() -> Unit][onMinimizeFinished] Callback invoked when the minimization animation completes.
+ */
+private suspend fun animatePlayer(
+        isExpanded: Boolean,
+        minHeightPx: Float,
+        maxHeightPx: Float,
+        heightPx: Animatable<Float, *>,
+        onHeightChanged: (Float) -> Unit = {},
+        onExpandStarted: () -> Unit = {},
+        onExpandFinished: () -> Unit = {},
+        onMinimizeStarted: () -> Unit = {},
+        onMinimizeFinished: () -> Unit = {}
+) {
+    val heightAnimationDuration = 300
+    val heightAnimationSpec = tween<Float>(durationMillis = heightAnimationDuration, easing = FastOutLinearInEasing)
+
+    val targetValue = when {
+        isExpanded -> maxHeightPx
+        else       -> minHeightPx
+    }
+
+    val isExpanding = heightPx.value < targetValue
+    when {
+        isExpanding -> onExpandStarted()
+        else        -> onMinimizeStarted()
+    }
+
+    heightPx.animateTo(targetValue = targetValue, animationSpec = heightAnimationSpec) {
+        val progress = ((value - minHeightPx) / (maxHeightPx - minHeightPx)).coerceIn(0f, 1f)
+        onHeightChanged(progress)
+    }
+
+    when {
+        isExpanding -> onExpandFinished()
+        else        -> onMinimizeFinished()
     }
 }
 

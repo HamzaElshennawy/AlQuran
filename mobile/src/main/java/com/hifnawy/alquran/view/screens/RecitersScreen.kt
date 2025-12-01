@@ -2,9 +2,11 @@ package com.hifnawy.alquran.view.screens
 
 import android.annotation.SuppressLint
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -92,6 +94,7 @@ fun RecitersScreen(
 
     PullToRefreshBox(
             modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceDim)
                 .fillMaxSize()
                 .statusBarsPadding()
                 .displayCutoutPadding(),

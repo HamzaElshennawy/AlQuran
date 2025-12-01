@@ -1,4 +1,5 @@
 /build
+/debug
 /release
 
 /src/main/res/drawable/surah_*.png

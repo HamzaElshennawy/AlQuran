@@ -309,7 +309,7 @@ data class PlayerState(
         val isVisible: Boolean = false,
         val isBuffering: Boolean = false,
         val isPlaying: Boolean = false,
-        val isExpanded: Boolean = true,
+        val isExpanded: Boolean = false,
         val isExpanding: Boolean = false,
         val isMinimizing: Boolean = false,
         val surahSelectionTimeStamp: Long? = null
