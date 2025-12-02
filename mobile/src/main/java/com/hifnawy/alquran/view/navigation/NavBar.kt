@@ -63,7 +63,6 @@ package com.hifnawy.alquran.view.navigation
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -75,7 +74,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -157,6 +155,7 @@ fun NavBar(navController: NavHostController, navBarHeightProgress: Float) {
             surahsRoute = "${Screen.Surahs.route}?reciter=$reciterJson&moshaf=$moshafJson"
             didNavigateToSurahs = true
         }
+
         currentDestinationRoute == Screen.Reciters.route                 -> didNavigateToSurahs = false
     }
 
@@ -181,8 +180,7 @@ fun NavBar(navController: NavHostController, navBarHeightProgress: Float) {
     NavigationBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(navBarHeight)
-                .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp)),
+                .height(navBarHeight),
             tonalElevation = 25.dp
     ) {
         navigationItems.forEach { item ->
@@ -197,13 +195,14 @@ fun NavBar(navController: NavHostController, navBarHeightProgress: Float) {
 
             val onNavBarItemClicked = callback@{
                 when {
-                    isRecitersItem                        -> navController.handleRecitersNavigation(
+                    isRecitersItem -> navController.handleRecitersNavigation(
                             cleanedCurrentRoute = currentRouteWithoutArgs,
                             didNavigatedToSurahs = didNavigateToSurahs,
                             surahsRoute = surahsRoute
                     )
+
                     currentRouteWithoutArgs == item.route -> return@callback
-                    else                                  -> navController.navigate(item.route) {
+                    else -> navController.navigate(item.route) {
                         popUpTo(item.route) { inclusive = false }
                         launchSingleTop = true
                     }
@@ -308,10 +307,12 @@ private fun NavHostController.handleRecitersNavigation(cleanedCurrentRoute: Stri
             popUpTo(surahsRoute) { inclusive = false }
             launchSingleTop = true
         }
+
         cleanedCurrentRoute == Screen.Surahs.route                         -> navigate(Screen.Reciters.route) {
             popUpTo(Screen.Reciters.route) { inclusive = false }
             launchSingleTop = true
         }
+
         cleanedCurrentRoute != Screen.Reciters.route                       -> navigate(Screen.Reciters.route) {
             popUpTo(Screen.Reciters.route) { inclusive = false }
             launchSingleTop = true

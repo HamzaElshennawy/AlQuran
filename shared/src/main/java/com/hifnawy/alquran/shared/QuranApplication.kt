@@ -13,6 +13,7 @@ import com.hifnawy.alquran.shared.domain.ServiceStatusObserver
 import com.hifnawy.alquran.shared.utils.LogDebugTree
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import timber.log.Timber
+import java.io.Serializable
 
 /**
  * A custom [Application] class for the Al-Quran app.
@@ -123,7 +124,7 @@ open class QuranApplication : Application() {
      */
     companion object {
 
-        data class LocaleInfo(val language: String, val country: String, val code: String, val isRTL: Boolean)
+        data class LocaleInfo(val language: String, val country: String, val code: String, val isRTL: Boolean): Serializable
 
         /**
          * Provides a global, static reference to the application's [Context].

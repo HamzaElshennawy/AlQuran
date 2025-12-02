@@ -29,7 +29,7 @@ fun FavoritesScreen() {
                 .background(MaterialTheme.colorScheme.surfaceDim)
                 .statusBarsPadding()
                 .displayCutoutPadding()
-                .padding(16.dp),
+                .padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
     ) {

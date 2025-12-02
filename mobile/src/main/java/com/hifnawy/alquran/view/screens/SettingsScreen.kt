@@ -11,10 +11,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.displayCutoutPadding
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,14 +39,20 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -58,7 +65,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.hifnawy.alquran.BuildConfig
 import com.hifnawy.alquran.R
+import com.hifnawy.alquran.datastore.SettingsDataStore
 import com.hifnawy.alquran.shared.QuranApplication
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import com.hifnawy.alquran.shared.R as Rs
 
 @Composable
@@ -69,7 +80,7 @@ fun SettingsScreen() {
                 .background(MaterialTheme.colorScheme.surfaceDim)
                 .statusBarsPadding()
                 .displayCutoutPadding()
-                .padding(10.dp),
+                .padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
     ) {
@@ -96,43 +107,20 @@ fun SettingsScreen() {
 
 @Composable
 private fun AppearanceSection() {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-                modifier = Modifier
-                    .basicMarquee()
-                    .padding(10.dp),
-                text = stringResource(R.string.settings_appearance_section),
-                maxLines = 1,
-                fontSize = 25.sp,
-                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                color = MaterialTheme.colorScheme.onSurface
-        )
-
-        OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-        ) {
-            Column(
-                    modifier = Modifier.padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                LanguageSettings()
-                ThemeSettings()
-                DynamicColorsSettings()
-            }
-        }
+    SettingsSectionCard(title = stringResource(R.string.settings_appearance_section)) {
+        LanguageSettings()
+        ThemeSettings()
+        DynamicColorsSettings()
     }
 }
 
 @Composable
 private fun LanguageSettings() {
+    val context = LocalContext.current
     val activity = LocalActivity.current
     val haptic = LocalHapticFeedback.current
+    val settingsDataStore = remember { SettingsDataStore }
+
     val intent = Intent().apply {
         action = when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> Settings.ACTION_APP_LOCALE_SETTINGS
@@ -141,165 +129,112 @@ private fun LanguageSettings() {
         data = "package:${activity?.packageName}".toUri()
     }
 
-    var isMenuExpanded by remember { mutableStateOf(false) }
+    var currentLocale by rememberSaveable { mutableStateOf(QuranApplication.currentLocale) }
 
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
+    val onClick = {
+        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        activity?.startActivity(intent) ?: Unit
+    }
+
+    LaunchedEffect(QuranApplication.currentLocale) {
+        currentLocale = QuranApplication.currentLocale
+        settingsDataStore.setLocale(context, currentLocale)
+        Timber.debug("Current locale: ${currentLocale.language}")
+    }
+
+    SettingsItemCard(
+            onClick = onClick,
+            icon = painterResource(id = R.drawable.language_24px),
+            title = stringResource(R.string.settings_language_label),
+            description = stringResource(R.string.settings_language_description)
     ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        isMenuExpanded = !isMenuExpanded
-                        activity?.startActivity(intent)
-                    }
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+                onClick = onClick,
+                modifier = Modifier.padding(horizontal = 10.dp)
         ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.language_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
-
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_language_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_language_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Box {
-                    Button(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                isMenuExpanded = true
-                                activity?.startActivity(intent)
-                            },
-                            modifier = Modifier.padding(horizontal = 10.dp)
-                    ) {
-                        val localeName = QuranApplication.currentLocale.language
-                        val localeCountry = QuranApplication.currentLocale.country
-                        val language = when {
-                            localeCountry.isBlank() -> localeName
-                            else                    -> "$localeName ($localeCountry)"
-                        }
-                        Text(
-                                modifier = Modifier.basicMarquee(),
-                                text = language,
-                                fontSize = 25.sp,
-                                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                                color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }
+            val localeName = currentLocale.language
+            val localeCountry = currentLocale.country
+            val language = when {
+                localeCountry.isBlank() -> localeName
+                else                    -> "$localeName ($localeCountry)"
             }
+
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = language,
+                    fontSize = 25.sp,
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }
 
 @Composable
 private fun ThemeSettings() {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+    val settingsDataStore = remember { SettingsDataStore }
+
     val options = listOf(
             R.drawable.theme_light_mode_outlined_24px to R.drawable.theme_light_mode_filled_24px,
             R.drawable.theme_auto_outlined_24px to R.drawable.theme_auto_filled_24px,
             R.drawable.theme_dark_mode_outlined_24px to R.drawable.theme_dark_mode_filled_24px,
     )
-    val haptic = LocalHapticFeedback.current
 
-    var selectedIndex by remember { mutableIntStateOf(1) }
+    var currentTheme by rememberSaveable { mutableStateOf(SettingsDataStore.Theme.SYSTEM) }
+    var selectedIndex by rememberSaveable { mutableIntStateOf(currentTheme.code) }
 
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
+    val onClick = { index: Int ->
+        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        selectedIndex = index
+
+        coroutineScope.launch {
+            currentTheme = when (selectedIndex) {
+                0 -> SettingsDataStore.Theme.LIGHT
+                1 -> SettingsDataStore.Theme.SYSTEM
+                else -> SettingsDataStore.Theme.DARK
+            }
+
+            settingsDataStore.setTheme(context, currentTheme)
+        }
+
+        Unit
+    }
+
+    LaunchedEffect(Unit) {
+        currentTheme = settingsDataStore.getTheme(context)
+        selectedIndex = currentTheme.code
+    }
+
+    SettingsItemCard(
+            onClick = { onClick((selectedIndex + 1) % options.size) },
+            icon = painterResource(id = R.drawable.theme_24px),
+            title = stringResource(R.string.settings_theme_label),
+            description = stringResource(R.string.settings_theme_description)
     ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        selectedIndex = (selectedIndex + 1) % options.size
+        Spacer(modifier = Modifier.weight(1f))
+
+        SingleChoiceSegmentedButtonRow {
+            options.forEachIndexed { index, (unSelectedIcon, selectedIcon) ->
+                SegmentedButton(
+                        selected = selectedIndex == index,
+                        onClick = { onClick(index) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
+                ) {
+                    val icon = when (selectedIndex) {
+                        index -> selectedIcon
+                        else  -> unSelectedIcon
                     }
-        ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.theme_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
 
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_theme_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                            painter = painterResource(icon),
+                            tint = MaterialTheme.colorScheme.primary,
+                            contentDescription = null
                     )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_theme_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                SingleChoiceSegmentedButtonRow {
-                    options.forEachIndexed { index, icon ->
-                        SegmentedButton(
-                                selected = selectedIndex == index,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                    selectedIndex = index
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = options.size
-                                )
-                        ) {
-                            val icon = when (selectedIndex) {
-                                index -> icon.second
-                                else  -> icon.first
-                            }
-                            Icon(
-                                    painter = painterResource(icon),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    contentDescription = null
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -309,8 +244,12 @@ private fun ThemeSettings() {
 @Composable
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun DynamicColorsSettings() {
+    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    var checked by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
+    val settingsDataStore = remember { SettingsDataStore }
+
+    var checked by rememberSaveable { mutableStateOf(true) }
 
     val onClick = {
         val hapticFeedbackType = when {
@@ -319,103 +258,47 @@ private fun DynamicColorsSettings() {
         }
         haptic.performHapticFeedback(hapticFeedbackType)
         checked = !checked
+
+        coroutineScope.launch { settingsDataStore.setDynamicColors(context, checked) }
+        Unit
     }
 
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
-    ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(onClick = onClick)
-        ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.dynamic_colors_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
+    LaunchedEffect(Unit) {
+        checked = settingsDataStore.getDynamicColors(context)
+    }
 
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_dynamic_colors_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_dynamic_colors_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
+    SettingsItemCard(
+            onClick = onClick,
+            icon = painterResource(id = R.drawable.dynamic_colors_24px),
+            title = stringResource(R.string.settings_dynamic_colors_label),
+            description = stringResource(R.string.settings_dynamic_colors_description),
+    ) {
+        Spacer(modifier = Modifier.weight(1f))
+
+        Switch(
+                checked = checked,
+                onCheckedChange = { onClick() },
+                thumbContent = {
+                    Icon(
+                            painter = when {
+                                checked -> painterResource(id = R.drawable.check_24px)
+                                else    -> painterResource(id = R.drawable.close_24px)
+                            },
+                            contentDescription = null
                     )
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Switch(
-                        checked = checked,
-                        onCheckedChange = { onClick() },
-                        thumbContent = {
-                            Icon(
-                                    painter = when {
-                                        checked -> painterResource(id = R.drawable.check_24px)
-                                        else    -> painterResource(id = R.drawable.close_24px)
-                                    },
-                                    contentDescription = null
-                            )
-                        }
-                )
-            }
-        }
+        )
     }
 }
 
 @Composable
 private fun AboutSection() {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-                modifier = Modifier
-                    .basicMarquee()
-                    .padding(10.dp),
-                text = stringResource(R.string.settings_about_section),
-                maxLines = 1,
-                fontSize = 25.sp,
-                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                color = MaterialTheme.colorScheme.onSurface
-        )
-
-        OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-        ) {
-            Column(
-                    modifier = Modifier.padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                NotificationsSettings()
-                TranslationCard()
-                PrivacyPolicyCard()
-                ContactCard()
-                AppDetailsCard()
-            }
-        }
+    SettingsSectionCard(title = stringResource(R.string.settings_about_section)) {
+        NotificationsSettings()
+        TranslationCard()
+        PrivacyPolicyCard()
+        ContactCard()
+        AppDetailsCard()
     }
 }
 
@@ -428,159 +311,49 @@ private fun NotificationsSettings() {
         putExtra(Settings.EXTRA_APP_PACKAGE, activity?.packageName)
     }
 
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
-    ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        activity?.startActivity(intent)
-                    }
-        ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.notifications_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
-
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_notifications_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_notifications_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
+    SettingsItemCard(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                activity?.startActivity(intent)
+            },
+            icon = painterResource(id = R.drawable.notifications_24px),
+            title = stringResource(R.string.settings_notifications_label),
+            description = stringResource(R.string.settings_notifications_description),
+    )
 }
 
 @Composable
 private fun TranslationCard() {
-    val haptic = LocalHapticFeedback.current
     val activity = LocalActivity.current
+    val haptic = LocalHapticFeedback.current
     val intent = Intent().apply {
         action = Intent.ACTION_VIEW
         data = stringResource(R.string.settings_translation_crowdin_url).toUri()
     }
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
-    ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        activity?.startActivity(intent)
-                    }
-        ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.translate_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
 
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_translation_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_translation_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
+    SettingsItemCard(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                activity?.startActivity(intent)
+            },
+            icon = painterResource(id = R.drawable.translate_24px),
+            title = stringResource(R.string.settings_translation_label),
+            description = stringResource(R.string.settings_translation_description),
+    )
 }
 
 @Composable
 private fun PrivacyPolicyCard() {
     val haptic = LocalHapticFeedback.current
 
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
-    ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                    }
-        ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.privacy_policy_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
-
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_privacy_policy_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_privacy_policy_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
+    SettingsItemCard(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            },
+            icon = painterResource(id = R.drawable.privacy_policy_24px),
+            title = stringResource(R.string.settings_privacy_policy_label),
+            description = stringResource(R.string.settings_privacy_policy_description),
+    )
 }
 
 @Composable
@@ -609,52 +382,15 @@ private fun ContactCard() {
         )
     }
 
-    Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp)
-    ) {
-        Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        activity?.startActivity(intent)
-                    }
-        ) {
-            Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .padding(horizontal = 10.dp),
-                        painter = painterResource(id = R.drawable.mail_24px),
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null
-                )
-
-                Column {
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_contact_label),
-                            fontSize = 25.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                            modifier = Modifier.basicMarquee(),
-                            text = stringResource(R.string.settings_contact_description),
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                            color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
+    SettingsItemCard(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                activity?.startActivity(intent)
+            },
+            icon = painterResource(id = R.drawable.mail_24px),
+            title = stringResource(R.string.settings_contact_label),
+            description = stringResource(R.string.settings_contact_description),
+    )
 }
 
 @Composable
@@ -669,131 +405,217 @@ private fun AppDetailsCard() {
         data = activity?.getString(R.string.settings_about_github_url)?.toUri()
     }
 
-    Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(500.dp),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        Row(
+    SettingsItemCard(cardContainerColor = MaterialTheme.colorScheme.primaryContainer) {
+        Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .weight(2f)
+                    .height(500.dp),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            Icon(
+                    modifier = Modifier.size(350.dp),
+                    painter = painterResource(id = R.drawable.app_icon_monochrome),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+            )
+
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = stringResource(R.string.app_name),
+                    fontSize = 30.sp,
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = stringResource(R.string.settings_about_version_code, BuildConfig.VERSION_CODE),
+                    fontSize = 25.sp,
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = stringResource(R.string.settings_about_version_name, versionName),
+                    fontSize = 25.sp,
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = stringResource(R.string.settings_about_developer_name),
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+
+        Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(500.dp),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            IconButton(
+                    modifier = Modifier.size(80.dp),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        activity?.startActivity(githubIntent)
+                    }
             ) {
                 Icon(
-                        modifier = Modifier.size(250.dp),
-                        painter = painterResource(id = R.drawable.app_icon_monochrome),
+                        painter = painterResource(R.drawable.github_icon),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                 )
+            }
 
-                Text(
-                        modifier = Modifier.basicMarquee(),
-                        text = stringResource(R.string.app_name),
-                        fontSize = 30.sp,
-                        fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                        color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                        modifier = Modifier.basicMarquee(),
-                        text = stringResource(R.string.settings_about_version_code, BuildConfig.VERSION_CODE),
-                        fontSize = 25.sp,
-                        fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                        color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                        modifier = Modifier.basicMarquee(),
-                        text = stringResource(R.string.settings_about_version_name, versionName),
-                        fontSize = 25.sp,
-                        fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                        color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                        modifier = Modifier.basicMarquee(),
-                        text = stringResource(R.string.settings_about_developer_name),
-                        fontSize = 20.sp,
-                        fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                        color = MaterialTheme.colorScheme.onSurface
+            IconButton(
+                    modifier = Modifier.size(80.dp),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    },
+                    enabled = false
+            ) {
+                Icon(
+                        painter = painterResource(R.drawable.crowdin_icon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
+            IconButton(
+                    modifier = Modifier.size(80.dp),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    },
+                    enabled = false
             ) {
+                Icon(
+                        painter = painterResource(R.drawable.fdroid_icon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                )
+            }
 
-                IconButton(
-                        modifier = Modifier.size(80.dp),
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            activity?.startActivity(githubIntent)
-                        }
-                ) {
+            IconButton(
+                    modifier = Modifier.size(80.dp),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    },
+                    enabled = false
+            ) {
+                Icon(
+                        painter = painterResource(R.drawable.izzyondroid_icon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSectionCard(
+        title: String,
+        content: @Composable ColumnScope.() -> Unit = {}
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+                modifier = Modifier
+                    .basicMarquee()
+                    .padding(10.dp),
+                text = title,
+                maxLines = 1,
+                fontSize = 25.sp,
+                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                color = MaterialTheme.colorScheme.onSurface
+        )
+
+        OutlinedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        ) {
+            Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsItemCard(
+        onClick: (() -> Unit)? = null,
+        icon: Painter? = null,
+        title: String? = null,
+        description: String? = null,
+        cardContainerColor: Color = MaterialTheme.colorScheme.surfaceBright,
+        content: @Composable RowScope.() -> Unit = {}
+) {
+    Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = cardContainerColor),
+            elevation = CardDefaults.cardElevation(20.dp)
+    ) {
+        val boxModifier = Modifier
+            .fillMaxSize()
+            .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)
+
+        Box(modifier = boxModifier) {
+            Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+            ) {
+                icon?.let {
                     Icon(
-                            painter = painterResource(R.drawable.github_icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier = Modifier
+                                .size(50.dp)
+                                .padding(horizontal = 10.dp),
+                            painter = icon,
+                            tint = MaterialTheme.colorScheme.primary,
+                            contentDescription = null
                     )
                 }
 
-                IconButton(
-                        modifier = Modifier.size(80.dp),
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        },
-                        enabled = false
-                ) {
-                    Icon(
-                            painter = painterResource(R.drawable.crowdin_icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                    )
+                Column {
+                    title?.let {
+                        Text(
+                                modifier = Modifier.basicMarquee(),
+                                text = it,
+                                fontSize = 25.sp,
+                                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                                color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    description?.let {
+                        Text(
+                                modifier = Modifier.basicMarquee(),
+                                text = it,
+                                fontSize = 20.sp,
+                                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                                color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
 
-                IconButton(
-                        modifier = Modifier.size(80.dp),
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        },
-                        enabled = false
-                ) {
-                    Icon(
-                            painter = painterResource(R.drawable.fdroid_icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(
-                        modifier = Modifier.size(80.dp),
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        },
-                        enabled = false
-                ) {
-                    Icon(
-                            painter = painterResource(R.drawable.izzyondroid_icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                content()
             }
         }
     }
