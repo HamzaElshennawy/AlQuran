@@ -2,6 +2,9 @@ package com.hifnawy.alquran.shared
 
 import android.app.Application
 import android.content.Context
+import android.util.LayoutDirection
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.text.layoutDirection
 import com.hifnawy.alquran.shared.QuranApplication.Companion.applicationContext
 import com.hifnawy.alquran.shared.domain.IObservable
 import com.hifnawy.alquran.shared.domain.QuranMediaService
@@ -77,13 +80,6 @@ open class QuranApplication : Application() {
         QuranApplication.applicationContext = applicationContext
 
         if (BuildConfig.DEBUG) Timber.plant(LogDebugTree())
-
-        // val arEg = LocaleListCompat.forLanguageTags("ar-EG")
-        //
-        // // Only set default if user has not chosen a locale
-        // if (AppCompatDelegate.getApplicationLocales().isEmpty) {
-        //     AppCompatDelegate.setApplicationLocales(arEg)
-        // }
     }
 
     /**
@@ -127,6 +123,8 @@ open class QuranApplication : Application() {
      */
     companion object {
 
+        data class LocaleInfo(val language: String, val country: String, val code: String, val isRTL: Boolean)
+
         /**
          * Provides a global, static reference to the application's [Context].
          *
@@ -142,5 +140,20 @@ open class QuranApplication : Application() {
          */
         lateinit var applicationContext: Context
             private set
+
+        val currentLocale
+            get() = AppCompatDelegate.getApplicationLocales().run {
+                when {
+                    !isEmpty -> this[0]!!
+                    else     -> applicationContext.resources.configuration.locales[0]
+                }.run {
+                    LocaleInfo(
+                            language = getDisplayLanguage(this),
+                            country = getDisplayCountry(this),
+                            code = language,
+                            isRTL = layoutDirection == LayoutDirection.RTL
+                    )
+                }
+            }
     }
 }

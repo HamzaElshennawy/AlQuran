@@ -6,10 +6,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import com.hifnawy.alquran.shared.QuranApplication
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import com.hifnawy.alquran.view.navigation.NavGraph
 import com.hifnawy.alquran.view.theme.AppTheme
+import timber.log.Timber
 
 /**
  * The main activity of the app.
@@ -33,8 +41,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            var layoutDirection by rememberSaveable {
+                mutableStateOf(
+                        when {
+                            QuranApplication.currentLocale.isRTL -> LayoutDirection.Rtl
+                            else  -> LayoutDirection.Ltr
+                        }
+                )
+            }
+
+            LaunchedEffect(QuranApplication.currentLocale.isRTL) {
+                Timber.debug("language: ${QuranApplication.currentLocale.language}, isRTL: ${QuranApplication.currentLocale.isRTL}")
+                layoutDirection = when {
+                    QuranApplication.currentLocale.isRTL -> LayoutDirection.Rtl
+                    else  -> LayoutDirection.Ltr
+                }
+            }
+
             AppTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                     NavGraph()
                 }
             }

@@ -27,8 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -61,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.hifnawy.alquran.BuildConfig
 import com.hifnawy.alquran.R
+import com.hifnawy.alquran.shared.QuranApplication
 import com.hifnawy.alquran.shared.R as Rs
 
 @Composable
@@ -133,8 +131,15 @@ private fun AppearanceSection() {
 
 @Composable
 private fun LanguageSettings() {
-    val languages = remember { mutableStateListOf("") }
+    val activity = LocalActivity.current
     val haptic = LocalHapticFeedback.current
+    val intent = Intent().apply {
+        action = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> Settings.ACTION_APP_LOCALE_SETTINGS
+            else                                                  -> Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+        }
+        data = "package:${activity?.packageName}".toUri()
+    }
 
     var isMenuExpanded by remember { mutableStateOf(false) }
 
@@ -149,6 +154,7 @@ private fun LanguageSettings() {
                     .clickable {
                         haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                         isMenuExpanded = !isMenuExpanded
+                        activity?.startActivity(intent)
                     }
         ) {
             Row(
@@ -189,60 +195,23 @@ private fun LanguageSettings() {
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                                 isMenuExpanded = true
+                                activity?.startActivity(intent)
                             },
                             modifier = Modifier.padding(horizontal = 10.dp)
                     ) {
+                        val localeName = QuranApplication.currentLocale.language
+                        val localeCountry = QuranApplication.currentLocale.country
+                        val language = when {
+                            localeCountry.isBlank() -> localeName
+                            else                    -> "$localeName ($localeCountry)"
+                        }
                         Text(
                                 modifier = Modifier.basicMarquee(),
-                                text = languages.first(),
+                                text = language,
                                 fontSize = 25.sp,
                                 fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                                 color = MaterialTheme.colorScheme.onPrimary
                         )
-                    }
-
-                    DropdownMenu(
-                            expanded = isMenuExpanded,
-                            onDismissRequest = { isMenuExpanded = false },
-                            shape = RoundedCornerShape(20.dp),
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            tonalElevation = 20.dp,
-                            shadowElevation = 20.dp,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                    ) {
-                        languages.forEach { language ->
-                            DropdownMenuItem(
-                                    leadingIcon = {
-                                        Icon(
-                                                painter = painterResource(id = R.drawable.language_24px),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                        )
-                                    },
-                                    trailingIcon = {
-                                        Icon(
-                                                painter = painterResource(id = R.drawable.check_24px),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                        )
-                                    },
-                                    onClick = {
-                                        isMenuExpanded = false
-                                        // onLanguageChange(language)
-                                    },
-                                    text = {
-                                        Text(
-                                                modifier = Modifier.basicMarquee(),
-                                                text = language,
-                                                fontSize = 25.sp,
-                                                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                                                color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                            )
-                        }
                     }
                 }
             }
