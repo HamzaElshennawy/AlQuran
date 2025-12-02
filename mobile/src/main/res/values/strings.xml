@@ -31,14 +31,31 @@
     <string name="navbar_favorites">المفضلين</string>
     <string name="navbar_settings">الإعدادات</string>
     <string name="settings_appearance_section">المظهر</string>
+    <string name="settings_language_label">اللغة</string>
+    <string name="settings_language_description">اللغة المستخدمة في التطبيق</string>
     <string name="settings_theme_label">السيم</string>
     <string name="settings_theme_description">أسهل على الأعين</string>
     <string name="settings_dynamic_colors_label">ألوان ديناميكية</string>
     <string name="settings_dynamic_colors_description">ألوان مستوحاة من خلفية الشاشة</string>
     <string name="settings_about_section">عن التطبيق</string>
+    <string name="settings_notifications_label">الإشعارات</string>
+    <string name="settings_notifications_description">تغيير إعدادات الإشعارات</string>
+    <string name="settings_translation_label">الترجمات</string>
+    <string name="settings_translation_description">ساعد في ترجمة التطبيق على Crowdin</string>
+    <string name="settings_privacy_policy_label">سياسة الخصوصية</string>
+    <string name="settings_privacy_policy_description">اضغط هنا لعرض سياسة الخصوصية</string>
+    <string name="settings_contact_label">التواصل</string>
+    <string name="settings_contact_description">التواصل مع المطور عبر البريد الإلكترونى</string>
+    <string name="settings_contact_developer_email">hifnawy_moniem@hotmail.com</string>
+    <string name="settings_contact_android_version">إصدار أندرويد: %s</string>
+    <string name="settings_contact_android_sdk">إصدار SDK: %s</string>
+    <string name="settings_contact_device_info">نوع الجهاز: %s</string>
     <string name="settings_about_version_code">رمز الإصدار:\t\t\t%d</string>
     <string name="settings_about_version_name">إسم الإصدار:\t\t\t%s</string>
-    <string name="settings_about_version_name_part">%d</string>
     <string name="settings_about_developer_name">عبد المنعم الحفناوى</string>
-    <string name="settings_about_github_url">https://github.com/abdalmoniem/AlQuran</string>
+
+    <string name="locale_int">%d</string>
+
+    <string translatable="false" name="settings_about_github_url">https://github.com/abdalmoniem/AlQuran</string>
+    <string translatable="false" name="settings_translation_crowdin_url">https://crowdin.com/project/alquran</string>
 </resources>
