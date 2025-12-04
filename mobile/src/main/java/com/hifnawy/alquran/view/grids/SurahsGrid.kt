@@ -50,13 +50,16 @@ import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
 import com.hifnawy.alquran.shared.model.ReciterId
 import com.hifnawy.alquran.shared.model.Surah
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import com.hifnawy.alquran.utils.ArabicPluralStringResource.arabicPluralStringResource
 import com.hifnawy.alquran.utils.LazyGridScopeEx.gridItems
 import com.hifnawy.alquran.utils.ModifierEx.AnimationType
 import com.hifnawy.alquran.utils.ModifierEx.animateItemPosition
+import com.hifnawy.alquran.utils.StringEx.stripFormattingChars
 import com.hifnawy.alquran.view.SearchBar
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.gridItems.SurahCard
+import timber.log.Timber
 import kotlin.math.abs
 import com.hifnawy.alquran.shared.R as Rs
 
@@ -73,6 +76,10 @@ fun SurahsGrid(
         playingReciterId: ReciterId? = null,
         onSurahCardClick: (surah: Surah) -> Unit
 ) {
+    // reciterSurahs.forEach { surah ->
+    //     Timber.debug("Surah: ${surah.name}")
+    // }
+
     SurahsGridContainer(isSkeleton = isSkeleton) { brush ->
         Column(
                 modifier = modifier
@@ -87,7 +94,7 @@ fun SurahsGrid(
             val listState = rememberSurahsGridState()
             val filteredSurahs = rememberSaveable(reciterSurahs, searchQuery) {
                 reciterSurahs.filter { surah ->
-                    surah.name.contains(searchQuery)
+                    surah.name.stripFormattingChars.trim().lowercase().contains(searchQuery.stripFormattingChars.trim().lowercase())
                 }
             }
 
@@ -244,14 +251,16 @@ private suspend fun executeScroll(
         itemInfo: LazyGridItemInfo?,
         availableViewportHeight: Float
 ) = listState.run {
+    val animationDuration = 700
+
     when (itemInfo) {
         null -> {
             val scrollOffset = (availableViewportHeight / 2f) - (surahCardHeight / 2f)
             scrollToItem(index = index, scrollOffset = 0)
-            animateScrollBy(value = -scrollOffset, animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing))
+            animateScrollBy(value = -scrollOffset, animationSpec = tween(durationMillis = animationDuration, easing = FastOutLinearInEasing))
         }
 
-        else -> animateScrollBy(value = scrollDistance, animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing))
+        else -> animateScrollBy(value = scrollDistance, animationSpec = tween(durationMillis = animationDuration, easing = FastOutLinearInEasing))
     }
 }
 

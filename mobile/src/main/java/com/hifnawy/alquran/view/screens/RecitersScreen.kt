@@ -76,9 +76,9 @@ fun RecitersScreen(
         MediaManager.whenRecitersReady { result ->
             when (result) {
                 is Result.Success -> {
-                    reciters = result.data
+                    reciters = result.data.sortedBy { it.name }
                     dataError = null
-                    mediaViewModel.updateState { this@updateState.reciters = result.data }
+                    mediaViewModel.updateState { this@updateState.reciters = reciters }
                 }
 
                 is Result.Error   -> {

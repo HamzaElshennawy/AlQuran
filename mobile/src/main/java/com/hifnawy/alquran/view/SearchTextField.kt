@@ -140,13 +140,8 @@ private fun SearchTextField(
             shape = RoundedCornerShape(20.dp),
             colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
             singleLine = true,
-            placeholder = {
-                Text(text = placeholder, fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)))
-            },
-            label = {
-                Text(text = label, fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)))
-
-            },
+            placeholder = { Text(text = placeholder, fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))) },
+            label = { Text(text = label, fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))) },
             leadingIcon = { Icon(painter = painterResource(id = R.drawable.search_24px), contentDescription = "Search Icon") },
             trailingIcon = {
                 if (query.isEmpty()) return@TextField

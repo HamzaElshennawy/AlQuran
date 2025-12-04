@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ import com.hifnawy.alquran.shared.model.asReciterId
 import com.hifnawy.alquran.utils.LazyGridScopeEx.gridItems
 import com.hifnawy.alquran.utils.ModifierEx.AnimationType
 import com.hifnawy.alquran.utils.ModifierEx.animateItemPosition
+import com.hifnawy.alquran.utils.StringEx.stripFormattingChars
 import com.hifnawy.alquran.view.SearchBar
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.gridItems.ReciterCard
@@ -75,13 +77,21 @@ fun RecitersGrid(
         ) {
             var searchQuery by rememberSaveable { mutableStateOf("") }
             var lastAnimatedIndex by rememberSaveable { mutableIntStateOf(-1) }
+            var selectedReciterId by rememberSaveable(stateSaver = Saver(save = { it.value }, restore = { ReciterId(it) })) { mutableStateOf((-1).asReciterId) }
             var expandedReciterCardId by rememberSaveable(stateSaver = Saver(save = { it.value }, restore = { ReciterId(it) })) { mutableStateOf((-1).asReciterId) }
 
             val listState = rememberRecitersGridState()
             val filteredReciters = rememberSaveable(reciters, searchQuery) {
                 reciters.filter { reciter ->
-                    reciter.name.contains(searchQuery)
+                    reciter.name.stripFormattingChars.trim().lowercase().contains(searchQuery.stripFormattingChars.trim().lowercase())
                 }
+            }
+
+            LaunchedEffect(searchQuery) {
+                if (selectedReciterId == (-1).asReciterId) return@LaunchedEffect
+                val reciterIndex = filteredReciters.indexOfFirst { it.id == selectedReciterId }.takeIf { it != -1 } ?: return@LaunchedEffect
+
+                listState.scrollToItem(reciterIndex)
             }
 
             TitleBar(isSkeleton = isSkeleton, brush = brush)
@@ -126,7 +136,10 @@ fun RecitersGrid(
                                     else      -> reciterId // Expand the new one
                                 }
                             },
-                            onMoshafClick = onMoshafClick
+                            onMoshafClick = { reciter, moshaf ->
+                                selectedReciterId = reciter.id
+                                onMoshafClick(reciter, moshaf)
+                            }
                     )
 
                     lastAnimatedIndex = index
