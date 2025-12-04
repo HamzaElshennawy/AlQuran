@@ -22,9 +22,15 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.hifnawy.alquran.shared.QuranApplication
 import com.hifnawy.alquran.shared.R
+import com.hifnawy.alquran.shared.domain.CacheDataSource.CacheInfo
+import com.hifnawy.alquran.shared.domain.CacheDataSource.cacheDataSourceFactory
+import com.hifnawy.alquran.shared.domain.CacheDataSource.getCacheInfo
+import com.hifnawy.alquran.shared.domain.CacheDataSource.releaseCache
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Actions.ACTION_RESTART_PLAYBACK
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Actions.ACTION_SEEK_PLAYBACK_TO
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Actions.ACTION_SKIP_TO_NEXT
@@ -56,6 +62,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -365,19 +372,37 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
             .build()
     }
 
+    val loadControl by lazy {
+        @UnstableApi
+        DefaultLoadControl.Builder().run {
+            setBufferDurationsMs(
+                    /* minBufferMs = */ 5.minutes.inWholeMilliseconds.toInt(),
+                    /* maxBufferMs = */ 10.minutes.inWholeMilliseconds.toInt(),
+                    /* bufferForPlaybackMs = */ 1.seconds.inWholeMilliseconds.toInt(),
+                    /* bufferForPlaybackAfterRebufferMs = */ 2.seconds.inWholeMilliseconds.toInt()
+            )
+            setPrioritizeTimeOverSizeThresholds(true)
+            build()
+        }
+    }
+
     /**
      * An [ExoPlayer] instance for the [QuranMediaService].
      *
      * This player is used to play audio media in the service.
      */
     private val player by lazy {
-        ExoPlayer.Builder(this).build().apply {
-            setAudioAttributes(this@QuranMediaService.audioAttributes, true)
-            setHandleAudioBecomingNoisy(true)
+        @UnstableApi
+        ExoPlayer.Builder(this)
+            .setLoadControl(loadControl)
+            .build()
+            .apply {
+                setAudioAttributes(this@QuranMediaService.audioAttributes, true)
+                setHandleAudioBecomingNoisy(true)
 
-            @UnstableApi
-            skipSilenceEnabled = true
-        }
+                @UnstableApi
+                skipSilenceEnabled = true
+            }
     }
 
     /**
@@ -529,6 +554,9 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
             release()
         }
 
+        @UnstableApi
+        releaseCache()
+
         MediaManager.stopLifecycle()
 
         if (this in MediaManager.mediaReadyListeners) MediaManager.mediaReadyListeners.remove(this@QuranMediaService)
@@ -563,7 +591,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                 val moshaf = getTypedSerializable<Moshaf>(Extras.EXTRA_MOSHAF.name) ?: return START_NOT_STICKY
                 val surah = getTypedSerializable<Surah>(Extras.EXTRA_SURAH.name) ?: return START_NOT_STICKY
 
-                if ((reciter.id == currentReciter?.id) && (moshaf.id == currentMoshaf?.id) && (surah.id == currentSurah?.id)) return START_NOT_STICKY
+                if ((reciter.id == currentReciter?.id) && (moshaf.id == currentMoshaf?.id) && (surah.id == currentSurah?.id) && player.isPlaying) return START_NOT_STICKY
 
                 currentSurahPosition = -1L
                 processSurah(reciter, moshaf, surah)
@@ -587,13 +615,29 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      */
     override fun onPlayerError(error: PlaybackException) {
         if (mediaSessionState == MediaSessionState.STOPPED.state) return
+
         Timber.error("Playback Error ${error.errorCode}: ${error.message}")
+        Timber.error("Error cause: ${error.cause?.message}")
+
+        val cacheKey = getCacheKey(currentReciter, currentMoshaf, currentSurah)
+        @UnstableApi
+        Timber.error("Content ${CacheInfo::class.java.simpleName}: ${getCacheInfo(cacheKey)}, but got network error")
 
         setMediaSessionState(MediaSessionState.BUFFERING)
 
-        quranApplication.lastStatusUpdate = ServiceStatus.Buffering
-
         startRetryMechanism()
+
+        val reciter = currentReciter ?: return
+        val moshaf = currentMoshaf ?: return
+        val surah = currentSurah ?: return
+        quranApplication.lastStatusUpdate = ServiceStatus.Buffering(
+                reciter = reciter,
+                moshaf = moshaf,
+                surah = surah,
+                durationMs = player.duration,
+                currentPositionMs = player.currentPosition,
+                bufferedPositionMs = player.bufferedPosition
+        )
     }
 
     /**
@@ -627,7 +671,14 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         when (state) {
             Player.STATE_BUFFERING -> {
                 setMediaSessionState(MediaSessionState.BUFFERING)
-                quranApplication.lastStatusUpdate = ServiceStatus.Buffering
+                quranApplication.lastStatusUpdate = ServiceStatus.Buffering(
+                        reciter = reciter,
+                        moshaf = moshaf,
+                        surah = surah,
+                        durationMs = player.duration,
+                        currentPositionMs = player.currentPosition,
+                        bufferedPositionMs = player.bufferedPosition
+                )
             }
 
             Player.STATE_READY     -> when {
@@ -691,6 +742,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         val surahUri = surah.url?.toUri() ?: return
         if (player.playbackState == Player.STATE_BUFFERING) return
 
+        @UnstableApi
         playMedia(surah, surahUri)
     }
 
@@ -843,12 +895,15 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         MediaManager.processSurah(reciter, moshaf, surah)
     }
 
+    private fun getCacheKey(reciter: Reciter?, moshaf: Moshaf?, surah: Surah?) = "reciter_#${reciter?.id?.value}_moshaf_#${moshaf?.id}_surah_#${surah?.id}"
+
     /**
      * Plays the media for the given [surah] from the provided [surahUri].
      *
      * @param surah [Surah] The surah to play.
      * @param surahUri [Uri] The URI of the surah to play.
      */
+    @UnstableApi
     private fun playMedia(surah: Surah, surahUri: Uri) {
         Timber.debug("playing ${surah.id}: ${surah.name}")
 
@@ -858,7 +913,17 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
             stop()
 
-            setMediaItem(MediaItem.fromUri(surahUri))
+            val cacheKey = getCacheKey(currentReciter, currentMoshaf, surah)
+
+            Timber.debug("${CacheInfo::class.java.simpleName}: ${getCacheInfo(cacheKey)}")
+
+            val mediaItem = MediaItem.Builder()
+                .setUri(surahUri)
+                .setCustomCacheKey(cacheKey)
+                .build()
+            val mediaSource = ProgressiveMediaSource.Factory(cacheDataSourceFactory).createMediaSource(mediaItem)
+
+            setMediaSource(mediaSource)
             prepare()
             seekTo(currentSurahPosition)
 
@@ -1043,7 +1108,14 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
                 setMediaSessionState(mediaSessionState)
                 quranApplication.lastStatusUpdate = when (mediaSessionState) {
-                    MediaSessionState.BUFFERING -> ServiceStatus.Buffering
+                    MediaSessionState.BUFFERING -> ServiceStatus.Buffering(
+                            reciter = reciter,
+                            moshaf = moshaf,
+                            surah = surah,
+                            durationMs = player.duration,
+                            currentPositionMs = player.currentPosition,
+                            bufferedPositionMs = player.bufferedPosition
+                    )
 
                     MediaSessionState.PLAYING   -> ServiceStatus.Playing(
                             reciter = reciter,
@@ -1117,7 +1189,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         }
 
         Timber.debug("Retrying Playback...")
-        player.prepare()
-        player.play()
+        isMediaReady = false
+        prepareMedia(currentReciter, currentMoshaf, currentSurah, currentSurahPosition)
     }
 }

@@ -76,6 +76,13 @@ sealed class ServiceStatus {
      * It inherits from [MediaInfo] to provide details about the media item that is currently
      * being buffered, including its current position and the total duration.
      *
+     * @param reciter [Reciter] The [Reciter] of the currently playing surah.
+     * @param moshaf [Moshaf] The [Moshaf] (recitation style) of the currently playing surah.
+     * @param surah [Surah] The [Surah] that is currently playing.
+     * @param durationMs [Long] The total duration of the media in milliseconds.
+     * @param currentPositionMs [Long] The current playback position in milliseconds.
+     * @param bufferedPositionMs [Long] The position up to which the media has been buffered, in milliseconds.
+     *
      * @see ServiceStatus
      * @see MediaInfo
      * @see Playing
@@ -83,7 +90,14 @@ sealed class ServiceStatus {
      * @see Ended
      * @see Stopped
      */
-    data object Buffering : ServiceStatus()
+    data class Buffering(
+            override val reciter: Reciter,
+            override val moshaf: Moshaf,
+            override val surah: Surah,
+            override val durationMs: Long,
+            override val currentPositionMs: Long,
+            override val bufferedPositionMs: Long
+    ) : MediaInfo()
 
     /**
      * Represents the state where media is actively playing.

@@ -258,6 +258,10 @@ class MediaViewModel(application: Application) : AndroidViewModel(application), 
             is ServiceStatus.Buffering -> updateState {
                 isBuffering = true
                 isPlaying = false
+                surah = status.surah
+                durationMs = status.durationMs
+                currentPositionMs = status.currentPositionMs
+                bufferedPositionMs = status.bufferedPositionMs
             }
 
             is ServiceStatus.Stopped   -> updateState {
