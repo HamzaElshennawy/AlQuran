@@ -133,15 +133,15 @@ object QuranRepository {
         )
     }
 
-    suspend fun getReciters(): Result<List<Reciter>, DataError> = sendRESTRequest<List<Reciter>>(recitersURL) { jsonResponse ->
+    suspend fun getReciters(): Result<List<Reciter>, DataError> = sendRESTRequest(recitersURL) { jsonResponse ->
         val recitersJsonArray = JSONObject(jsonResponse).getJSONArray(applicationContext.getString(R.string.API_RECITERS)).toString()
 
-        Gson().fromJson(recitersJsonArray, object : TypeToken<List<Reciter>>() {}.type)
+        Gson().fromJson<List<Reciter>>(recitersJsonArray, object : TypeToken<List<Reciter>>() {}.type).sortedBy { it.name }
     }
 
     suspend fun getSurahs(): Result<List<Surah>, DataError> = sendRESTRequest(surahsURL) { jsonResponse ->
         val surahsJsonArray = JSONObject(jsonResponse).getJSONArray(applicationContext.getString(R.string.API_SURAHS)).toString()
 
-        Gson().fromJson(surahsJsonArray, object : TypeToken<List<Surah>>() {}.type)
+        Gson().fromJson<List<Surah>>(surahsJsonArray, object : TypeToken<List<Surah>>() {}.type).sortedBy { it.id }
     }
 }

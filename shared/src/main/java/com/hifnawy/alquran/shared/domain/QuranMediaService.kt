@@ -591,7 +591,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                 val moshaf = getTypedSerializable<Moshaf>(Extras.EXTRA_MOSHAF.name) ?: return START_NOT_STICKY
                 val surah = getTypedSerializable<Surah>(Extras.EXTRA_SURAH.name) ?: return START_NOT_STICKY
 
-                if ((reciter.id == currentReciter?.id) && (moshaf.id == currentMoshaf?.id) && (surah.id == currentSurah?.id) && player.isPlaying) return START_NOT_STICKY
+                if ((reciter.id == currentReciter?.id) && (moshaf.id == currentMoshaf?.id) && (surah.id == currentSurah?.id) && isMediaReady) return START_NOT_STICKY
 
                 currentSurahPosition = -1L
                 processSurah(reciter, moshaf, surah)
