@@ -6,6 +6,7 @@ import android.util.LayoutDirection
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.text.layoutDirection
 import com.hifnawy.alquran.shared.QuranApplication.Companion.applicationContext
+import com.hifnawy.alquran.shared.QuranApplication.Companion.currentLocale
 import com.hifnawy.alquran.shared.domain.IObservable
 import com.hifnawy.alquran.shared.domain.QuranMediaService
 import com.hifnawy.alquran.shared.domain.ServiceStatus
@@ -14,6 +15,7 @@ import com.hifnawy.alquran.shared.utils.LogDebugTree
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import timber.log.Timber
 import java.io.Serializable
+import java.util.Locale
 
 /**
  * A custom [Application] class for the Al-Quran app.
@@ -80,6 +82,7 @@ open class QuranApplication : Application() {
 
         QuranApplication.applicationContext = applicationContext
 
+        @Suppress("KotlinConstantConditions", "RedundantSuppression")
         if (BuildConfig.DEBUG) Timber.plant(LogDebugTree())
     }
 
@@ -142,7 +145,21 @@ open class QuranApplication : Application() {
         lateinit var applicationContext: Context
             private set
 
-        val currentLocale
+        /**
+         * Gets the current effective [Locale] for the application.
+         *
+         * This property determines the current locale by first checking the [AppCompatDelegate]'s
+         * application-specific locales. If an app-specific locale is set (e.g., via an in-app
+         * language switcher), that locale is returned.
+         *
+         * If no app-specific locale is set, it falls back to the system's default locale as
+         * configured in the device's settings.
+         *
+         * @return [Locale] The currently active [Locale] for the application.
+         *
+         * @see AppCompatDelegate.getApplicationLocales
+         */
+        val currentLocale: Locale
             get() = AppCompatDelegate.getApplicationLocales().run {
                 when {
                     !isEmpty -> this[0]!!
@@ -150,6 +167,19 @@ open class QuranApplication : Application() {
                 }
             }
 
+        /**
+         * Provides comprehensive information about the current application locale.
+         *
+         * This computed property leverages [currentLocale] to construct a [LocaleInfo] data class.
+         * It includes the display language, display country, `ISO 639-1` language code, and a boolean
+         * indicating if the layout direction is `RTL`/`LTR`. This is useful for UI adjustments
+         * and displaying locale-specific information.
+         *
+         * @return [LocaleInfo] An object containing detailed information about the current locale.
+         *
+         * @see LocaleInfo
+         * @see currentLocale
+         */
         val currentLocaleInfo
             get() = currentLocale.run {
                 LocaleInfo(
