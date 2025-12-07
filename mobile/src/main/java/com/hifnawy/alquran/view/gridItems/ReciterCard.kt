@@ -49,6 +49,7 @@ import com.hifnawy.alquran.utils.TextUtil.highlightMatchingText
 import com.hifnawy.alquran.utils.sampleReciters
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.player.AnimatedAudioBars
+import com.hifnawy.alquran.viewModel.PlayerState
 import com.hifnawy.alquran.shared.R as Rs
 
 /**
@@ -315,6 +316,19 @@ private fun MoshafCount(
     }
 }
 
+/**
+ * A Jetpack Compose preview function for the [ReciterCard].
+ *
+ * This preview displays the [ReciterCard] in a typical usage scenario:
+ * - It's expanded ([PlayerState.isExpanded] = `true`).
+ * - A sample reciter's data is shown.
+ * - The playing state is active ([PlayerState.isPlaying] = `true`), showing the animated audio bars.
+ * - A random Moshaf from the reciter is marked as currently playing.
+ * - A random search query is generated and highlighted in the reciter's name.
+ *
+ * The preview is configured for the Arabic locale (`locale = "ar"`) to ensure
+ * correct right-to-left layout and font rendering.
+ */
 @Composable
 @Preview(locale = "ar")
 private fun ReciterCardPreview() {

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +45,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,11 +59,13 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -218,12 +220,7 @@ private fun LanguageSettings() {
             title = stringResource(R.string.settings_language_label),
             description = stringResource(R.string.settings_language_description)
     ) {
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-                onClick = onClick,
-                modifier = Modifier.padding(horizontal = 10.dp)
-        ) {
+        Button(onClick = onClick) {
             val localeName = currentLocale.language
             val localeCountry = currentLocale.country
             val language = when {
@@ -234,7 +231,10 @@ private fun LanguageSettings() {
             Text(
                     modifier = Modifier.basicMarquee(),
                     text = language,
-                    fontSize = 25.sp,
+                    fontSize = when {
+                        QuranApplication.currentLocaleInfo.isRTL -> 25.sp
+                        else                                     -> 20.sp
+                    },
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                     color = MaterialTheme.colorScheme.onPrimary
             )
@@ -267,6 +267,7 @@ private fun ThemeSettings() {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
+    val layoutDirection = LocalLayoutDirection.current
     val settingsDataStore = remember { SettingsDataStore }
 
     val options = listOf(
@@ -306,25 +307,25 @@ private fun ThemeSettings() {
             title = stringResource(R.string.settings_theme_label),
             description = stringResource(R.string.settings_theme_description)
     ) {
-        Spacer(modifier = Modifier.weight(1f))
-
         SingleChoiceSegmentedButtonRow {
-            options.forEachIndexed { index, (unSelectedIcon, selectedIcon) ->
-                SegmentedButton(
-                        selected = selectedIndex == index,
-                        onClick = { onClick(index) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
-                ) {
-                    val icon = when (selectedIndex) {
-                        index -> selectedIcon
-                        else  -> unSelectedIcon
-                    }
+            key(layoutDirection) {
+                options.forEachIndexed { index, (unSelectedIcon, selectedIcon) ->
+                    SegmentedButton(
+                            onClick = { onClick(index) },
+                            selected = selectedIndex == index,
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
+                    ) {
+                        val icon = when (selectedIndex) {
+                            index -> selectedIcon
+                            else  -> unSelectedIcon
+                        }
 
-                    Icon(
-                            painter = painterResource(icon),
-                            tint = MaterialTheme.colorScheme.primary,
-                            contentDescription = null
-                    )
+                        Icon(
+                                painter = painterResource(icon),
+                                tint = MaterialTheme.colorScheme.primary,
+                                contentDescription = null
+                        )
+                    }
                 }
             }
         }
@@ -388,8 +389,6 @@ private fun DynamicColorsSettings() {
             title = stringResource(R.string.settings_dynamic_colors_label),
             description = stringResource(R.string.settings_dynamic_colors_description),
     ) {
-        Spacer(modifier = Modifier.weight(1f))
-
         Switch(
                 checked = checked,
                 onCheckedChange = { onClick() },
@@ -706,6 +705,11 @@ private fun AppDetailsCard() {
                 verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val baseFontSize = when {
+                QuranApplication.currentLocaleInfo.isRTL -> 30.sp
+                else                                     -> 25.sp
+            }
+
             Icon(
                     modifier = Modifier.size(350.dp),
                     painter = painterResource(id = R.drawable.app_icon_monochrome),
@@ -714,33 +718,49 @@ private fun AppDetailsCard() {
             )
 
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
+                    maxLines = 1,
                     text = stringResource(R.string.app_name),
-                    fontSize = 30.sp,
+                    textAlign = TextAlign.Center,
+                    fontSize = baseFontSize,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
             )
 
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
+                    maxLines = 1,
                     text = stringResource(R.string.settings_about_version_code, BuildConfig.VERSION_CODE),
-                    fontSize = 25.sp,
+                    textAlign = TextAlign.Center,
+                    fontSize = (baseFontSize.value - 5.sp.value).sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
             )
 
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
+                    maxLines = 1,
                     text = stringResource(R.string.settings_about_version_name, versionName),
-                    fontSize = 25.sp,
+                    textAlign = TextAlign.Center,
+                    fontSize = (baseFontSize.value - 5.sp.value).sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
             )
 
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
+                    maxLines = 1,
                     text = stringResource(R.string.settings_about_developer_name),
-                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    fontSize = (baseFontSize.value - 10.sp.value).sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -929,30 +949,70 @@ private fun SettingsItemCard(
                     )
                 }
 
-                Column {
-                    title?.let {
-                        Text(
-                                modifier = Modifier.basicMarquee(),
-                                text = it,
-                                fontSize = 25.sp,
-                                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                                color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    description?.let {
-                        Text(
-                                modifier = Modifier.basicMarquee(),
-                                text = it,
-                                fontSize = 20.sp,
-                                fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
-                                color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                SettingsItemSummary(title = title, description = description)
 
                 content()
             }
+        }
+    }
+}
+
+/**
+ * A composable function intended to be used within a [RowScope] to display a `title`
+ * and a `description` for a setting item.
+ *
+ * This function arranges a main [title] and a smaller [description] vertically in a [Column].
+ * It is designed to be a flexible part of a larger row-based layout, like [SettingsItemCard].
+ *
+ * Key features:
+ * - **Weighting**: The component dynamically adjusts its width by applying a `weight` modifier
+ *   only if a `title` or `description` is provided, allowing it to occupy available space
+ *   within a [Row].
+ * - **RTL Support**: The font size is adjusted based on the current locale's writing direction
+ *   ([QuranApplication.LocaleInfo.isRTL]) to ensure proper rendering for both `LTR` and
+ *   `RTL` languages.
+ * - **Custom Typography**: It uses a custom font (`aref_ruqaa`) and colors from the
+ *   [MaterialTheme] for a consistent look.
+ * - **Marquee Effect**: The [basicMarquee] modifier is applied to both the `title` and `description`
+ *   to handle cases where the text might overflow its container.
+ *
+ * @param title [String?][String] The main text to display as the setting's title. If `null`, the [title]
+ *   [Text] composable will not be rendered.
+ * @param description [String?][String] The secondary text to display below the [title], providing additional
+ *   context. If `null`, the [description] [Text] composable will not be rendered.
+ */
+@Composable
+private fun RowScope.SettingsItemSummary(title: String?, description: String?) {
+    Column(
+            modifier = when {
+                title != null || description != null -> Modifier.weight(3f)
+                else                                 -> Modifier
+            }
+    ) {
+        title?.let {
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = it,
+                    fontSize = when {
+                        QuranApplication.currentLocaleInfo.isRTL -> 25.sp
+                        else                                     -> 20.sp
+                    },
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        description?.let {
+            Text(
+                    modifier = Modifier.basicMarquee(),
+                    text = it,
+                    fontSize = when {
+                        QuranApplication.currentLocaleInfo.isRTL -> 20.sp
+                        else                                     -> 15.sp
+                    },
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
+                    color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

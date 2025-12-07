@@ -127,6 +127,18 @@ open class QuranApplication : Application() {
      */
     companion object {
 
+        /**
+         * A data class that encapsulates detailed information about a specific locale.
+         *
+         * This class provides a structured way to hold common locale properties, making it easier
+         * to manage and access locale-specific data throughout the application. It is serializable,
+         * allowing it to be passed between components, such as in intents or bundles.
+         *
+         * @property language [String] The full, display-friendly name of the language (e.g., `English`, `Arabic`).
+         * @property country [String] The full, display-friendly name of the country (e.g., `United States`, `Egypt`).
+         * @property code [String] The `ISO 639-1` two-letter language code (e.g., `en`, `ar`).
+         * @property isRTL [Boolean] A [Boolean] flag indicating whether the language uses an `RTL` layout direction. `true` for `RTL`, `false` for `LTR`.
+         */
         data class LocaleInfo(val language: String, val country: String, val code: String, val isRTL: Boolean) : Serializable
 
         /**

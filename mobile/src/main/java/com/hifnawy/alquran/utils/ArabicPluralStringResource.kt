@@ -4,6 +4,19 @@ import androidx.annotation.PluralsRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 
+/**
+ * An object that provides a workaround for handling Arabic pluralization rules in Jetpack Compose.
+ *
+ * Android's standard pluralization mechanism, based on CLDR rules, does not always produce
+ * the grammatically correct form for all numbers in Arabic. This object contains utility functions
+ * to address specific edge cases, ensuring that the correct plural string is selected from
+ * `plurals.xml` resources.
+ *
+ * It is particularly useful for numbers where the standard [pluralStringResource] might select
+ * an incorrect plural category, such as for numbers between 103-110.
+ *
+ * @see arabicPluralStringResource
+ */
 object ArabicPluralStringResource {
 
     /**

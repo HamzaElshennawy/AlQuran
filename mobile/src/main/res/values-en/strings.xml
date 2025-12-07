@@ -15,8 +15,8 @@
         <item quantity="one">One Surah</item>
         <item quantity="other">%d Surahs</item>
     </plurals>
-    <string name="surah_makkia">Makkia</string>
-    <string name="surah_madaneyya">Madaneyya</string>
+    <string name="surah_meccan">Meccan</string>
+    <string name="surah_medinan">Medinan</string>
     <string name="reciters_loading_error">An error occurred while loading reciters, please try again later.</string>
     <string name="surahs_loading_error">An error occurred while loading surahs, please try again later.</string>
     <string name="navbar_reciters">Reciters</string>

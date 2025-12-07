@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
 
             var layoutDirection by rememberSaveable { mutableStateOf(localeDirection) }
             var theme by rememberSaveable { mutableStateOf(SettingsDataStore.Theme.SYSTEM) }
-            var dynamicColors by rememberSaveable { mutableStateOf(true) }
+            var isDynamicColorsEnabled by rememberSaveable { mutableStateOf(true) }
 
             LaunchedEffect(Unit) {
                 val locale = settingsDataStore.getLocale(context)
@@ -69,19 +69,19 @@ class MainActivity : ComponentActivity() {
                 }
 
                 theme = settingsDataStore.getTheme(context)
-                dynamicColors = settingsDataStore.getDynamicColors(context)
+                isDynamicColorsEnabled = settingsDataStore.getDynamicColors(context)
             }
 
-            SettingsObserver { data ->
-                Timber.debug("data: $data")
+            SettingsObserver { settingsData ->
+                Timber.debug("data: $settingsData")
 
                 layoutDirection = when {
-                    data.locale.isRTL -> LayoutDirection.Rtl
+                    settingsData.locale.isRTL -> LayoutDirection.Rtl
                     else              -> LayoutDirection.Ltr
                 }
 
-                theme = data.theme
-                dynamicColors = data.dynamicColors
+                theme = settingsData.theme
+                isDynamicColorsEnabled = settingsData.isDynamicColorsEnabled
             }
 
             AppTheme(
@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
                         SettingsDataStore.Theme.SYSTEM -> isSystemInDarkTheme()
                         SettingsDataStore.Theme.DARK   -> true
                     },
-                    dynamicColor = dynamicColors
+                    dynamicColor = isDynamicColorsEnabled
             ) {
                 CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                     NavGraph()

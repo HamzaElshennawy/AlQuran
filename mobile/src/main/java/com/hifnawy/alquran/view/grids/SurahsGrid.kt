@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -50,7 +51,6 @@ import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
 import com.hifnawy.alquran.shared.model.ReciterId
 import com.hifnawy.alquran.shared.model.Surah
-import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import com.hifnawy.alquran.utils.ArabicPluralStringResource.arabicPluralStringResource
 import com.hifnawy.alquran.utils.LazyGridScopeEx.gridItems
 import com.hifnawy.alquran.utils.ModifierEx.AnimationType
@@ -59,10 +59,28 @@ import com.hifnawy.alquran.utils.StringEx.stripFormattingChars
 import com.hifnawy.alquran.view.SearchBar
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.gridItems.SurahCard
-import timber.log.Timber
 import kotlin.math.abs
+import kotlin.math.sign
 import com.hifnawy.alquran.shared.R as Rs
 
+/**
+ * A Composable that displays a grid of Surahs for a specific reciter and moshaf.
+ *
+ * It includes a title bar with the reciter and moshaf name, a search bar to filter surahs,
+ * and a lazy grid of [SurahCard] items. It also handles scrolling to the currently playing
+ * surah card.
+ *
+ * @param modifier [Modifier] The modifier to apply to the grid.
+ * @param reciter [Reciter] The [Reciter] for whom the surahs are being displayed.
+ * @param moshaf [Moshaf] The current [Moshaf].
+ * @param reciterSurahs [List< Surah >][List] The [List] of [Surah]s available for the reciter and moshaf.
+ * @param isSkeleton [Boolean] A boolean indicating if the surahs list is currently being fetched.
+ * @param isPlaying [Boolean] A boolean indicating if any surah is being played.
+ * @param playingSurahId [Int?][Int] The id of the currently playing surah.
+ * @param playingMoshafId [Int?][Int] The id of the currently playing moshaf.
+ * @param playingReciterId [ReciterId?][ReciterId] The id of the currently playing reciter.
+ * @param onSurahCardClick [((surah: Surah) -> Unit)][onSurahCardClick] A callback to be called when a surah card is clicked.
+ */
 @Composable
 fun SurahsGrid(
         modifier: Modifier = Modifier,
@@ -76,10 +94,6 @@ fun SurahsGrid(
         playingReciterId: ReciterId? = null,
         onSurahCardClick: (surah: Surah) -> Unit
 ) {
-    // reciterSurahs.forEach { surah ->
-    //     Timber.debug("Surah: ${surah.name}")
-    // }
-
     SurahsGridContainer(isSkeleton = isSkeleton) { brush ->
         Column(
                 modifier = modifier
@@ -164,6 +178,16 @@ fun SurahsGrid(
     }
 }
 
+/**
+ * A Composable function that remembers the state of a [LazyGridState] across recompositions
+ * and configuration changes. It uses [rememberSaveable] with the default [LazyGridState.Saver]
+ * to persist the grid's scroll position.
+ *
+ * @param firstVisibleItemIndex [Int] The initial index of the first visible item in the grid.
+ * @param firstVisibleItemScrollOffset [Int] The initial scroll offset of the first visible item.
+ *
+ * @return [LazyGridState] A new [LazyGridState] instance that is saved and restored automatically.
+ */
 @Composable
 private fun rememberSurahsGridState(
         firstVisibleItemIndex: Int = 0,
@@ -183,6 +207,15 @@ private fun rememberSurahsGridState(
  *   will be scrolled to the playing surah when any surah is chosen
  * - if not added, the LaunchedEffect will be called only when [lazyGridHeight] or [surahCardHeight]
  *   changes and the grid will be scrolled to the playing surah only when the composable is recomposed
+ *
+ * @param listState [LazyGridState] The state of the grid.
+ * @param isPlaying [Boolean] A boolean indicating if any surah is being played.
+ * @param reciter [Reciter] The [Reciter] for whom the surahs are being displayed.
+ * @param filteredSurahs [List< Surah >][List] The [List] of [Surah]s available for the reciter and moshaf.
+ * @param playingSurahId [Int?][Int] The id of the currently playing surah.
+ * @param playingReciterId [ReciterId?][ReciterId] The id of the currently playing reciter.
+ * @param lazyGridHeight [Int] The height of the grid.
+ * @param surahCardHeight [Int] The height of a surah card.
  */
 @Composable
 private fun ScrollToPlayingSurah(
@@ -231,11 +264,40 @@ private fun ScrollToPlayingSurah(
     }
 }
 
+/**
+ * Calculates the distance to scroll to center the currently playing surah card within the available viewport.
+ *
+ * If the item is visible (`itemInfo` is not null), it calculates the scroll distance needed to move the
+ * vertical center of the card to the vertical center of the `availableViewportHeight`.
+ *
+ * If the item is not visible (`itemInfo` is null), it returns `0f`, as the scroll will be handled
+ * by `scrollToItem` first.
+ *
+ * @param surahCardHeight [Int] The height of a single surah card in pixels.
+ * @param itemInfo [LazyGridItemInfo?][LazyGridItemInfo] for the item to be centered, or `null` if it's not currently visible.
+ * @param availableViewportHeight [Float] The height of the visible area of the grid, excluding obstructions like a mini-player.
+ *
+ * @return [Float] The calculated scroll distance in pixels. A positive value means scrolling down, a negative value means scrolling up.
+ */
 private fun getScrollDistance(surahCardHeight: Int, itemInfo: LazyGridItemInfo?, availableViewportHeight: Float) = when {
     itemInfo != null -> (itemInfo.offset.y + surahCardHeight / 2f) - (availableViewportHeight / 2f)
     else             -> 0f
 }
 
+/**
+ * Determines whether the grid should scroll to the currently playing surah.
+ *
+ * Scrolling is necessary under the following conditions:
+ * - The surah card is not currently visible on screen ([itemInfo] is `null`).
+ * - The surah card is partially obscured by the `mini-player`.
+ * - The surah card is not perfectly centered and requires a scroll of more than `1 pixel` to be centered.
+ *
+ * @param scrollDistance [Float] The calculated distance required to center the item.
+ * @param miniPlayerTopEdge [Float] The `Y-coordinate` of the top edge of the mini-player, used to check for obstruction.
+ * @param itemInfo [LazyGridItemInfo?][LazyGridItemInfo] Information about the item if it's visible, otherwise `null`.
+ *
+ * @return [Boolean] `true` if a scroll should be executed, `false` otherwise.
+ */
 private fun shouldScroll(scrollDistance: Float, miniPlayerTopEdge: Float, itemInfo: LazyGridItemInfo?) = when {
     itemInfo == null -> true
     itemInfo.offset.y + itemInfo.size.height > miniPlayerTopEdge -> true
@@ -243,6 +305,28 @@ private fun shouldScroll(scrollDistance: Float, miniPlayerTopEdge: Float, itemIn
     else -> false
 }
 
+/**
+ * Executes a scroll animation to bring a specific surah card into view and center it.
+ *
+ * It uses a different strategy depending on whether the target item is already visible:
+ * - If the item is **not visible** ([itemInfo] is `null`):
+ *    - It first performs a small, quick scroll in the direction of the target item.
+ *    - It then recalculates the [scrollDistance] based on the new layout information.
+ *    - Finally, it recursively calls itself to perform the main centering animation.
+ * - If the item is **already visible** ([itemInfo] is not `null`):
+ *    - It directly performs a smooth scroll animation ([LazyGridState.animateScrollBy]) using the
+ *      pre-calculated [scrollDistance] to center it.
+ *
+ * @param index [Int] The index of the target item in the lazy grid.
+ * @param surahCardHeight [Int] The height of a single surah card in pixels.
+ * @param scrollDistance [Float] The distance in pixels to scroll to center the item. This is only
+ *   used if the item is already visible.
+ * @param listState [LazyGridState] The [LazyGridState] that controls the grid's scroll position.
+ * @param itemInfo [LazyGridItemInfo?][LazyGridItemInfo] The [LazyGridItemInfo] for the item if it's currently visible, or `null` otherwise.
+ * @param availableViewportHeight [Float] The height of the visible area of the grid, used for centering calculations.
+ *
+ * @return [Float] The amount of scrolled distance in pixels.
+ */
 private suspend fun executeScroll(
         index: Int,
         surahCardHeight: Int,
@@ -250,20 +334,53 @@ private suspend fun executeScroll(
         listState: LazyGridState,
         itemInfo: LazyGridItemInfo?,
         availableViewportHeight: Float
-) = listState.run {
+): Float = listState.run {
     val animationDuration = 700
 
     when (itemInfo) {
         null -> {
-            val scrollOffset = (availableViewportHeight / 2f) - (surahCardHeight / 2f)
-            scrollToItem(index = index, scrollOffset = 0)
-            animateScrollBy(value = -scrollOffset, animationSpec = tween(durationMillis = animationDuration, easing = FastOutLinearInEasing))
+            val scrollDirection = sign((index - firstVisibleItemIndex).toFloat())
+
+            val initialScrollDistance = animateScrollBy(
+                    value = scrollDirection * surahCardHeight,
+                    animationSpec = tween(durationMillis = 50, easing = FastOutLinearInEasing)
+            )
+
+            val newItemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+            val scrollDistance = getScrollDistance(
+                    itemInfo = newItemInfo,
+                    surahCardHeight = surahCardHeight,
+                    availableViewportHeight = availableViewportHeight
+            )
+
+            initialScrollDistance + executeScroll(
+                    index = index,
+                    surahCardHeight = surahCardHeight,
+                    scrollDistance = scrollDistance,
+                    listState = this,
+                    itemInfo = newItemInfo,
+                    availableViewportHeight = availableViewportHeight
+            )
         }
 
         else -> animateScrollBy(value = scrollDistance, animationSpec = tween(durationMillis = animationDuration, easing = FastOutLinearInEasing))
     }
 }
 
+/**
+ * A Composable that displays the title for the [SurahsGrid].
+ *
+ * It shows the name of the reciter and the name of the moshaf along with the total surah count.
+ * The text uses specific fonts and sizes for styling. If [isSkeleton] is `true`, it displays
+ * placeholder shimmer bars with dimensions matching the expected text size. The texts also have
+ * a marquee effect applied to handle long names that might overflow.
+ *
+ * @param isSkeleton [Boolean] If `true`, displays shimmering placeholder bars instead of text.
+ * @param brush [Brush?][Brush] The [Brush] to be used for the background of the shimmer placeholders.
+ *   This is only used when [isSkeleton] is `true`.
+ * @param reciter [Reciter] The reciter whose name is to be displayed.
+ * @param moshaf [Moshaf] The moshaf whose name and surah count are to be displayed.
+ */
 @Composable
 private fun TitleBar(
         isSkeleton: Boolean,
@@ -332,14 +449,18 @@ private fun TitleBar(
 
         else       -> Column {
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = reciterText,
                     style = reciterStyle,
                     color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = moshafText,
                     style = moshafStyle,
                     color = MaterialTheme.colorScheme.onSurface
@@ -349,6 +470,18 @@ private fun TitleBar(
     }
 }
 
+/**
+ * A container Composable that conditionally applies a shimmer animation.
+ *
+ * If [isSkeleton] is `true`, it wraps the [content] within a [ShimmerAnimation],
+ * providing a [Brush] that can be used to draw shimmering placeholder UI.
+ * If [isSkeleton] is `false`, it simply renders the [content] directly, passing `null`
+ * for the brush.
+ *
+ * @param isSkeleton [Boolean] A [Boolean] indicating whether to show the shimmer effect.
+ * @param content [@Composable (brush: Brush?) -> Unit][content] A composable lambda that receives an optional [Brush].
+ *   The brush is non-null only when [isSkeleton] is `true`.
+ */
 @Composable
 private fun SurahsGridContainer(
         isSkeleton: Boolean,

@@ -42,8 +42,25 @@ import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.utils.TextUtil.highlightMatchingText
 import com.hifnawy.alquran.utils.sampleSurahs
 import com.hifnawy.alquran.view.player.AnimatedAudioBars
+import com.hifnawy.alquran.viewModel.PlayerState
 import com.hifnawy.alquran.shared.R as Rs
 
+/**
+ * A composable that displays a card for a single Surah (chapter of the Quran).
+ *
+ * This card shows the Surah's name, its type (Meccan or Medinan), and can display
+ * a loading skeleton state. It also features an animation to indicate when the
+ * Surah is currently being played by the audio player. The Surah name can be
+ * highlighted based on a search query.
+ *
+ * @param modifier [Modifier] The modifier to be applied to the card.
+ * @param surah [Surah?][Surah] The [Surah] object to display. If null, the card might show a skeleton or nothing, depending on [isSkeleton].
+ * @param isSkeleton [Boolean] A [Boolean] flag to indicate if the card should display a skeleton loading UI.
+ * @param isPlaying [Boolean] A [Boolean] flag to indicate if this Surah is currently being played, which triggers the [AnimatedAudioBars].
+ * @param searchQuery [String] A [String] used to highlight matching parts of the Surah's name.
+ * @param brush [Brush?][Brush] A [Brush] used for the skeleton loading animation. Required if [isSkeleton] is true.
+ * @param onClick [onClick: (surah: Surah) -> Unit][onClick] A lambda function that will be invoked when the card is clicked.
+ */
 @Composable
 fun SurahCard(
         modifier: Modifier = Modifier,
@@ -52,7 +69,7 @@ fun SurahCard(
         isPlaying: Boolean = false,
         searchQuery: String = "",
         brush: Brush? = null,
-        onClick: (surah: Surah) -> Unit
+        onClick: (surah: Surah) -> Unit = {}
 ) {
     val animationDurationMillis = 500
     val floatAnimationSpec = tween<Float>(durationMillis = animationDurationMillis)
@@ -108,6 +125,21 @@ fun SurahCard(
     }
 }
 
+/**
+ * A composable function that displays the name of a Surah.
+ *
+ * This function has two states:
+ * - **Skeleton state** ([isSkeleton] is `true`): It displays a placeholder a [Spacer] with a shimmering background [Brush]
+ *   to indicate that content is loading. The [Brush] is required for this state.
+ * - **Content state** ([isSkeleton] is `false`): It displays the actual Surah name using a [Text] composable.
+ *   The surah object is required for this state. It highlights parts of the name that match the [searchQuery].
+ *   The font size and family are adjusted based on the current locale (RTL or LTR).
+ *
+ * @param isSkeleton [Boolean] A [Boolean] flag to determine whether to show the skeleton loader or the actual content.
+ * @param brush [Brush?][Brush] The [Brush] to be used for the background of the skeleton loader. Null if not in skeleton state.
+ * @param surah [Surah?][Surah] The [Surah] object containing the name to be displayed. Null if in skeleton state.
+ * @param searchQuery [String] The [String] text query to highlight within the Surah's name.
+ */
 @Composable
 private fun SurahName(
         isSkeleton: Boolean,
@@ -151,6 +183,14 @@ private fun SurahName(
     }
 }
 
+/**
+ * A private composable function that displays the revelation type of a Surah (Meccan or Medinan).
+ * It can also display a `skeleton` loading state.
+ *
+ * @param isSkeleton [Boolean] A [Boolean] flag to indicate if the composable should render in a loading ([isSkeleton]) state.
+ * @param brush [Brush?][Brush] The [Brush] to be used for the background of the `skeleton` loader. It's ignored if [isSkeleton] is `false`.
+ * @param surah [Surah?][Surah] The [Surah] object containing the data to be displayed. If `null` and not in a skeleton state, nothing is rendered.
+ */
 @Composable
 private fun SurahType(
         isSkeleton: Boolean,
@@ -174,8 +214,8 @@ private fun SurahType(
             if (surah == null) return
             Text(
                     text = when (surah.makkia) {
-                        1 -> stringResource(R.string.surah_makkia)
-                        else -> stringResource(R.string.surah_madaneyya)
+                        1 -> stringResource(R.string.surah_meccan)
+                        else -> stringResource(R.string.surah_medinan)
                     },
                     fontSize = 25.sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
@@ -184,6 +224,13 @@ private fun SurahType(
     }
 }
 
+/**
+ * A [Preview] composable for the [SurahCard].
+ *
+ * This preview demonstrates the [SurahCard] in a specific state,
+ * displaying a random sample Surah, with the [PlayerState.isPlaying] state set to `true`.
+ * It's configured for a `150x150` dp size and uses the Arabic (`ar`) locale.
+ */
 @Composable
 @Preview(widthDp = 150, heightDp = 150, locale = "ar")
 private fun SurahCardPreview() {

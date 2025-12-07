@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,8 +58,26 @@ import com.hifnawy.alquran.utils.StringEx.stripFormattingChars
 import com.hifnawy.alquran.view.SearchBar
 import com.hifnawy.alquran.view.ShimmerAnimation
 import com.hifnawy.alquran.view.gridItems.ReciterCard
+import com.hifnawy.alquran.view.player.AnimatedAudioBars
 import com.hifnawy.alquran.shared.R as Rs
 
+/**
+ * A Composable that displays a grid of Quran reciters.
+ *
+ * This grid supports searching, displaying a `skeleton`/`loading` state, and `highlighting` the
+ * currently playing reciter and their specific Moshaf (Quran narration). Each reciter can be
+ * expanded to show their available Moshafs.
+ *
+ * @param modifier [Modifier] The modifier to be applied to the grid container.
+ * @param reciters [List< Reciter >][List] The [List] of [Reciter] objects to display.
+ * @param isSkeleton [Boolean] A [Boolean] flag to indicate whether to show a shimmer-animated skeleton UI
+ * while data is loading. Defaults to `false`.
+ * @param isPlaying [Boolean] A [Boolean] flag to indicate if any audio is currently playing.
+ * @param playingReciterId [ReciterId?][ReciterId] The [ReciterId] of the reciter that is currently playing. Used for highlighting.
+ * @param playingMoshafId [Int]The ID of the [Moshaf] that is currently playing. Used for highlighting within an expanded reciter card.
+ * @param onMoshafClick [(reciter: Reciter, moshaf: Moshaf) -> Unit][onMoshafClick] A callback lambda that is invoked when a user clicks on a [Moshaf] within a reciter's card.
+ *   It provides the parent [Reciter] and the clicked [Moshaf].
+ */
 @Composable
 fun RecitersGrid(
         modifier: Modifier = Modifier,
@@ -67,7 +86,7 @@ fun RecitersGrid(
         isPlaying: Boolean = false,
         playingReciterId: ReciterId? = null,
         playingMoshafId: Int? = null,
-        onMoshafClick: (Reciter, Moshaf) -> Unit = { _, _ -> }
+        onMoshafClick: (reciter: Reciter, moshaf: Moshaf) -> Unit = { _, _ -> }
 ) {
     RecitersGridContainer(isSkeleton = isSkeleton) { brush ->
         Column(
@@ -149,6 +168,18 @@ fun RecitersGrid(
     }
 }
 
+/**
+ * A private composable function that creates and remembers a [LazyGridState] for the reciters grid.
+ *
+ * This function uses [rememberSaveable] with [LazyGridState.Saver] to ensure that the grid's
+ * scroll state (the first visible item index and its scroll offset) is preserved across
+ * configuration changes and process death.
+ *
+ * @param firstVisibleItemIndex [Int] The initial index to scroll to.
+ * @param firstVisibleItemScrollOffset [Int] The initial scroll offset of the first visible item.
+ *
+ * @return [LazyGridState] A remembered [LazyGridState] instance.
+ */
 @Composable
 private fun rememberRecitersGridState(
         firstVisibleItemIndex: Int = 0,
@@ -157,6 +188,18 @@ private fun rememberRecitersGridState(
     LazyGridState(firstVisibleItemIndex = firstVisibleItemIndex, firstVisibleItemScrollOffset = firstVisibleItemScrollOffset)
 }
 
+/**
+ * A container Composable that conditionally applies a shimmer animation.
+ *
+ * If [isSkeleton] is `true`, it wraps the [content] within a [ShimmerAnimation],
+ * providing a [Brush] that can be used to draw shimmering placeholder UI.
+ * If [isSkeleton] is `false`, it simply renders the [content] directly, passing `null`
+ * for the brush.
+ *
+ * @param isSkeleton [Boolean] A [Boolean] indicating whether to show the shimmer effect.
+ * @param content [@Composable (brush: Brush?) -> Unit][content] A composable lambda that receives an optional [Brush].
+ *   The brush is non-null only when [isSkeleton] is `true`.
+ */
 @Composable
 private fun RecitersGridContainer(
         isSkeleton: Boolean,
@@ -166,6 +209,18 @@ private fun RecitersGridContainer(
     else       -> content(null)
 }
 
+/**
+ * A private composable that displays the main title bar of the screen, including the app icon and name.
+ *
+ * This function is responsible for rendering the title. It has two states:
+ * - **Normal State:** Shows the app icon and the app name styled with a specific font.
+ * - **Skeleton State:** Shows placeholder shapes with a shimmer effect ([Brush]) where the icon and title would be. This is used during data loading.
+ *
+ * It dynamically calculates the size of the title text to ensure the skeleton placeholder has the correct dimensions.
+ *
+ * @param isSkeleton [Boolean] If `true`, the composable renders in its `skeleton` (`loading`) state.
+ * @param brush [Brush?][Brush] The [Brush] to use for the shimmer animation in the skeleton state. It's expected to be non-null when [isSkeleton] is `true`.
+ */
 @Composable
 private fun TitleBar(
         isSkeleton: Boolean,
@@ -229,7 +284,9 @@ private fun TitleBar(
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = titleText,
                     style = titleStyle,
                     color = MaterialTheme.colorScheme.onSurface
@@ -238,6 +295,31 @@ private fun TitleBar(
     }
 }
 
+/**
+ * A private composable that acts as a wrapper for a [ReciterCard] within the [LazyVerticalGrid].
+ *
+ * This function is responsible for:
+ * - Applying an animation to the grid item based on the scroll direction. It uses [animateItemPosition] to create
+ *   a [AnimationType.FallDown] or [AnimationType.RiseUp] effect.
+ * - Determining if the current card should be in an expanded state by comparing the [reciter]'s ID
+ *   with the [expandedReciterId].
+ * - Safely handling callbacks ([onToggleExpand], [onMoshafClick]) by providing no-op lambdas
+ *   when in the `skeleton` state to prevent crashes.
+ * - Passing all relevant state down to the [ReciterCard] which handles the actual UI rendering.
+ *
+ * @param modifier [Modifier] The modifier to be applied to the item.
+ * @param isScrollingDown [Boolean] A flag indicating the scroll direction. `true` if scrolling down, `false` otherwise.
+ *   This determines the animation type.
+ * @param reciter [Reciter?][Reciter] The [Reciter] data for this grid item. Can be `null` in the skeleton state.
+ * @param expandedReciterId [ReciterId] The ID of the currently expanded reciter in the grid.
+ * @param searchQuery [String] The current search query, used for highlighting matching text in the [ReciterCard].
+ * @param isSkeleton [Boolean] If `true`, the composable renders in its `skeleton` (`loading`) state.
+ * @param isPlaying [Boolean] A [Boolean] flag to indicate if this reciter is currently being played, which triggers the [AnimatedAudioBars].
+ * @param playingMoshafId [Int?][Int] The ID of the currently playing moshaf. `null` if no moshaf is playing.
+ * @param brush [Brush?][Brush] A [Brush] used for the skeleton loading animation. Required if [isSkeleton] is true.
+ * @param onToggleExpand [onToggleExpand: (ReciterId) -> Unit][onToggleExpand] A lambda function that will be invoked when the expand/collapse button is clicked.
+ * @param onMoshafClick [onMoshafClick: (Reciter, Moshaf) -> Unit][onMoshafClick] A lambda function that will be invoked when a moshaf is clicked.
+ */
 @Composable
 private fun GridItem(
         modifier: Modifier = Modifier,

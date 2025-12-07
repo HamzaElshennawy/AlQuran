@@ -56,11 +56,11 @@ object SettingsDataStore {
      *
      * @property locale [LocaleInfo] The current language and locale settings for the application, represented by [LocaleInfo].
      * @property theme [Theme] The selected application theme (Light, Dark, or System default), represented by [Theme].
-     * @property dynamicColors [Boolean] A boolean flag indicating whether dynamic theming (Material You) is enabled.
+     * @property isDynamicColorsEnabled [Boolean] A boolean flag indicating whether dynamic theming (Material You) is enabled.
      *
      * @author AbdElMoniem ElHifnawy
      */
-    data class SettingsData(val locale: LocaleInfo, val theme: Theme, val dynamicColors: Boolean)
+    data class SettingsData(val locale: LocaleInfo, val theme: Theme, val isDynamicColorsEnabled: Boolean)
 
     /**
      * Represents the available application themes.
@@ -368,7 +368,7 @@ object SettingsDataStore {
         context.dataStore.edit { preferences ->
             preferences[SettingsKey.DynamicColors.key] = dynamicColors
 
-            lastSettingsData = lastSettingsData.copy(dynamicColors = dynamicColors)
+            lastSettingsData = lastSettingsData.copy(isDynamicColorsEnabled = dynamicColors)
 
             notifySettingsDataObservers(lastSettingsData)
         }
@@ -443,7 +443,7 @@ object SettingsDataStore {
             lastSettingsData = SettingsData(
                     locale = getLocale(QuranApplication.applicationContext),
                     theme = getTheme(QuranApplication.applicationContext),
-                    dynamicColors = getDynamicColors(QuranApplication.applicationContext)
+                    isDynamicColorsEnabled = getDynamicColors(QuranApplication.applicationContext)
             )
         }
     }
