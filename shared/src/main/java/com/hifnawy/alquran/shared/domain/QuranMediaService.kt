@@ -27,8 +27,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.hifnawy.alquran.shared.QuranApplication
 import com.hifnawy.alquran.shared.R
+import com.hifnawy.alquran.shared.domain.CacheDataSource.CacheKey.Companion.asCacheKey
 import com.hifnawy.alquran.shared.domain.CacheDataSource.cacheDataSourceFactory
-import com.hifnawy.alquran.shared.domain.CacheDataSource.getCacheInfo
+import com.hifnawy.alquran.shared.domain.CacheDataSource.cacheInfo
 import com.hifnawy.alquran.shared.domain.CacheDataSource.releaseCache
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Actions.ACTION_RESTART_PLAYBACK
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Actions.ACTION_SEEK_PLAYBACK_TO
@@ -892,7 +893,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      *
      * @return [String] A unique [String] key for caching the audio media item.
      */
-    private fun getCacheKey(reciter: Reciter?, moshaf: Moshaf?, surah: Surah?) = "reciter_#${reciter?.id?.value}_moshaf_#${moshaf?.id}_surah_#${surah?.id}"
+    private fun getCacheKey(reciter: Reciter?, moshaf: Moshaf?, surah: Surah?) = "reciter_#${reciter?.id?.value}_moshaf_#${moshaf?.id}_surah_#${surah?.id}".asCacheKey
 
     /**
      * Plays the media for the given [surah] from the provided [surahUri].
@@ -912,15 +913,15 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
             val cacheKey = getCacheKey(currentReciter, currentMoshaf, surah)
 
-            Timber.debug("${getCacheInfo(cacheKey)}")
+            Timber.debug("${cacheKey.cacheInfo}")
 
             val mediaItem = MediaItem.Builder().run {
                 setUri(surahUri)
-                setCustomCacheKey(cacheKey)
+                setCustomCacheKey(cacheKey.value)
                 build()
             }
 
-            val mediaSource = ProgressiveMediaSource.Factory(cacheDataSourceFactory).createMediaSource(mediaItem)
+            val mediaSource = ProgressiveMediaSource.Factory(cacheKey.cacheDataSourceFactory).createMediaSource(mediaItem)
 
             setMediaSource(mediaSource)
             prepare()

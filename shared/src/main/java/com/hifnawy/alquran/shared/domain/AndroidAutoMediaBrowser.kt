@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.utils.MediaConstants
@@ -20,7 +21,6 @@ import com.hifnawy.alquran.shared.repository.Result
 import com.hifnawy.alquran.shared.utils.DrawableResUtil.surahDrawableId
 import com.hifnawy.alquran.shared.utils.ImageUtil.drawTextOn
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.error
-import com.hifnawy.alquran.shared.utils.NumberExt.sp
 import timber.log.Timber
 
 open class AndroidAutoMediaBrowser : MediaBrowserServiceCompat() {
@@ -41,7 +41,7 @@ open class AndroidAutoMediaBrowser : MediaBrowserServiceCompat() {
                     text = reciter.name,
                     // subText = if (reciter.recitationStyle != null) "(${reciter.recitationStyle.style})" else "",
                     fontFace = R.font.aref_ruqaa,
-                    fontSize = 60.sp.toFloat(),
+                    fontSize = 120.sp.value,
                     fontMargin = 0
             )
         }
