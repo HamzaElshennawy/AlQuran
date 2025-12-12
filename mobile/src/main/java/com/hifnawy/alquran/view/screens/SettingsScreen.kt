@@ -2,6 +2,7 @@ package com.hifnawy.alquran.view.screens
 
 import android.content.Intent
 import android.os.Build
+import android.provider.DocumentsContract
 import android.provider.Settings
 import android.text.Html
 import androidx.activity.compose.LocalActivity
@@ -72,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.hifnawy.alquran.BuildConfig
+import com.hifnawy.alquran.DocumentProvider
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.datastore.SettingsDataStore
 import com.hifnawy.alquran.shared.QuranApplication
@@ -414,6 +416,7 @@ private fun DynamicColorsSettings() {
  *
  * The section is titled `About` and includes the following sub-composables:
  * - [NotificationsSettings]: Navigates the user to the system's notification settings for the app.
+ * - [InternalFilesSettings]: Navigates the user to the system's file manager to browse the application's internal files
  * - [TranslationCard]: Provides a link to the project's translation platform (Crowdin).
  * - [PrivacyPolicyCard]: Displays the app's privacy policy in a modal bottom sheet.
  * - [ContactCard]: Opens an email client with a pre-filled template for contacting the developer.
@@ -421,6 +424,7 @@ private fun DynamicColorsSettings() {
  *
  * @see SettingsSectionCard
  * @see NotificationsSettings
+ * @see InternalFilesSettings
  * @see TranslationCard
  * @see PrivacyPolicyCard
  * @see ContactCard
@@ -430,6 +434,7 @@ private fun DynamicColorsSettings() {
 private fun AboutSection() {
     SettingsSectionCard(title = stringResource(R.string.settings_about_section)) {
         NotificationsSettings()
+        InternalFilesSettings()
         TranslationCard()
         PrivacyPolicyCard()
         ContactCard()
@@ -468,6 +473,57 @@ private fun NotificationsSettings() {
             icon = painterResource(id = R.drawable.notifications_24px),
             title = stringResource(R.string.settings_notifications_label),
             description = stringResource(R.string.settings_notifications_description),
+    )
+}
+
+/**
+ * A Composable that provides a setting to browse the application's internal files.
+ *
+ * This setting item, when tapped, allows the user to explore the app's internal storage
+ * using the system's file manager. This can be useful for debugging or accessing
+ * downloaded resources like audio files. It is part of the `About` section.
+ *
+ * It constructs an [Intent] with [Intent.ACTION_VIEW] to open a directory.
+ * The intent is specifically configured to interact with the app's [DocumentProvider],
+ * targeting the root of the app's exposed files. It requests the necessary read and write
+ * permissions for the URI.
+ *
+ * User Interaction:
+ * - Tapping the card triggers haptic feedback ([HapticFeedbackType.SegmentTick]).
+ * - It then starts an activity with the configured intent, opening a file browser.
+ *
+ * @see SettingsItemCard
+ * @see DocumentProvider
+ * @see DocumentsContract
+ * @see Intent.ACTION_VIEW
+ */
+@Composable
+private fun InternalFilesSettings() {
+    val activity = LocalActivity.current
+    val haptic = LocalHapticFeedback.current
+
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        val type = DocumentsContract.Document.MIME_TYPE_DIR
+        val data = DocumentsContract.buildRootUri(DocumentProvider.AUTHORITY, DocumentProvider.ROOT_ID)
+
+        addCategory(Intent.CATEGORY_DEFAULT)
+
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+
+        setDataAndType(data, type)
+    }
+
+    SettingsItemCard(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                activity?.startActivity(intent)
+            },
+            icon = painterResource(id = R.drawable.files_24px),
+            title = stringResource(R.string.settings_internal_files_label, stringResource(R.string.app_name)),
+            description = stringResource(R.string.settings_internal_files_description, stringResource(R.string.app_name)),
     )
 }
 

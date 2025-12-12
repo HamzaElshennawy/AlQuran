@@ -41,5 +41,16 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/player_widget_info" />
         </receiver>
+
+        <provider
+            android:exported="true"
+            android:name=".DocumentProvider"
+            android:grantUriPermissions="true"
+            android:authorities="${applicationId}.file_provider"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
     </application>
 </manifest>

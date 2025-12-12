@@ -1,0 +1,177 @@
+- ### feat(storage): Expose internal files via DocumentsProvider
+   > This commit introduces a `DocumentProvider` to expose the application's internal files through the Android Storage Access Framework (SAF). It also refactors the media player's buffering logic to better handle local file playback.
+   > - **`DocumentProvider` Implementation:**
+   >     - A new `DocumentProvider` class has been created to allow users and other apps to browse and manage the application's internal files (e.g., `files`, `databases`, `shared_prefs`).
+   >     - This provider is registered in the `AndroidManifest.xml` with the authority `${applicationId}.file_provider` and is protected by the `MANAGE_DOCUMENTS` permission.
+   >     - It handles all standard SAF operations, including querying, creating, deleting, renaming, copying, and moving files and directories.
+   > - **Settings Screen Integration:**
+   >     - A new "Open App Folder" option has been added to the "About" section in the `SettingsScreen`.
+   >     - This option launches an intent that opens the system file manager, allowing users to directly access the app's internal storage via the new `DocumentProvider`.
+   >     - A new `files_24px.xml` icon and corresponding string resources have been added for this setting.
+   > - **Media Playback Buffering:**
+   >     - The `QuranMediaService` now distinguishes between local and remote media sources.
+   >     - For local files (e.g., downloaded surahs), the buffered position is now correctly reported as the full duration of the media. This ensures the progress bar accurately reflects that the entire file is available offline.
+   >     - For remote streams, the buffering logic remains unchanged, reporting the actual buffered portion.
+------------------------------
+- ### Refactor(Download): Improve download and cache management
+   > Commit: 3eb0f99
+   > 
+   > This commit significantly refactors the download and caching mechanisms to improve memory efficiency, performance, and code organization. The primary change is the replacement of an inefficient in-memory byte array copying process with a more robust stream-based approach for moving completed downloads.
+   > - **Cache & Download Management:**
+   >   - **`QuranCacheDataSource.kt`:**
+   >     - Replaced memory-intensive `contents` and `keyContents` functions, which loaded entire files into `ByteArray`s, with a new `moveContentsTo(destinationFile: File)` function.
+   >     - This new function streams cached data directly to the destination file using `InputStream.copyTo()`, drastically reducing memory usage, especially for large files.
+   >     - Once the content is successfully moved, the original cache entry for that key is automatically deleted.
+   >     - The `deleteKey(key: String)` function, which had a bug causing it to delete the entire cache directory, has been removed.
+   >   - **`QuranDownloadService.kt`:**
+   >     - Refactored the entire service for better clarity and structure. The core logic is now within a `QuranDownloadManager` companion object.
+   >     - Integrated `moveContentsTo` to handle completed downloads. When a download finishes, its cached content is now efficiently streamed to its final location in the app's internal storage, and the temporary download entry is removed.
+   >     - Implemented a custom `DownloaderFactory` to use `ProgressiveDownloader`, providing more control over the download process.
+   >     - The `DownloaderFactory` now enables cross caching between the download and playback process. if a media was cached and then a download was started, the download process will use the cached data to jump start the download and vice versa.
+   >     - Enhanced download notifications to be more descriptive, showing detailed progress (e.g., `Downloading Surah X by Reciter Y...`) and queued status (e.g., `Preparing Surah Z (3 in queue)`).
+   > - **Internationalization (i18n):**
+   >   - **`values*/strings.xml`:**
+   >     - Added new translatable strings for playback and download notification channels, providing clearer descriptions for users.
+   >     - Added detailed and translatable strings for download progress and queue status, which are used in the foreground service notifications.
+   > - **API & Code Cleanup:**
+   >   - **`QuranMediaService.kt`:**
+   >     - Renamed `CHANNEL_ID` to `PLAYBACK_NOTIFICATION_CHANNEL_ID` for better clarity and consistency.
+   >     - Simplified `serviceScope` initialization.
+   >   - **`SurahsGrid.kt`:** Updated calls to use the new `QuranDownloadManager` object.
+   >   - **`helper-scripts/.python-version`:** Updated the required Python version specifier to `>=3.13`.
+------------------------------
+- ### feat(download): Implement surah downloading functionality
+   > Commit: 21c4f96
+   > 
+   > This commit introduces a major new feature: the ability to download surahs for offline listening. It includes a new `DownloadService`, UI components for managing downloads, and significant refactoring of caching and media handling logic to support local file playback.
+   > - **`QuranDownloadService.kt`:**
+   >     - A new `DownloadService` is implemented using `Media3`'s `DownloadManager` to handle queuing, downloading, pausing, and resuming of surah audio files.
+   >     - Downloads are managed per reciter/moshaf combination.
+   >     - It uses a foreground service with a notification to show download progress.
+   >     - Completed downloads are moved from the temporary cache to a permanent `files/downloads` directory, organized by reciter and moshaf.
+   > - **`QuranCacheDataSource.kt`:**
+   >     - The `CacheDataSource` has been renamed to `QuranCacheDataSource` and significantly enhanced.
+   >     - Added `contents` and `keyContents` properties to read the raw `ByteArray` of a cached item.
+   >     - Added `delete()` and `deleteKey()` functions to remove specific cache entries or entire cache directories.
+   > - **`QuranMediaService.kt`:**
+   >     - Now checks if a surah URI has a `file://` scheme. If so, it plays the local file directly.
+   >     - If a previously cached online surah is downloaded, the old cache entry is deleted to prevent duplication.
+   > - **`AndroidManifest.xml`:**
+   >     - The new `QuranDownloadService` is registered.
+   >     - Added `POST_NOTIFICATIONS` and `FOREGROUND_SERVICE_DATA_SYNC` permissions.
+   > - **`SurahsGrid.kt`:**
+   >     - A download icon button has been added next to the search bar to initiate downloads for the current moshaf.
+   >     - A `DownloadProgressDialog` is displayed to show the overall progress (surahs downloaded/total) and the progress for the current surah being downloaded.
+   >     - The dialog provides real-time updates on download percentage, downloaded size, and total size.
+   >     - Users can cancel (pause) the download process from the dialog.
+   > - **`QuranDownloadServiceObserver.kt`:**
+   >     - A new composable is introduced to safely observe the state of the `QuranDownloadService` from the UI, ensuring observers are registered and unregistered correctly with the Composable lifecycle.
+   > - **`MediaManager.kt`:**
+   >     - The logic for fetching and preparing surah URLs (`getMoshafSurahs`, `toSurahWithUri`) has been updated to check for a locally downloaded file first before falling back to the remote server URL. This enables seamless offline playback.
+   > - **`LongEx.kt`:**
+   >     - Introduced `asLocalizedHumanReadableSize` to display file sizes using localized units (e.g., "مب" for MB in Arabic), improving the user experience for the download dialog.
+   > - **`build.gradle.kts`:**
+   >     - Added `androidx.work.runtime.ktx` dependency.
+   >     - Enabled the `-Xwhen-guards` Kotlin compiler argument.
+   > - **New String Resources:**
+   >     - Added various strings for download UI, such as "Downloading Surahs…", "Cancel Download", and size units (GB, MB, etc.), with translations for English and Arabic.
+   > - **New Drawable:**
+   >     - Added `download_24px.xml` for the download icon button.
+------------------------------
+- ### Refactor(Cache): Isolate cache instances per media item
+   > Commit: 3ad3127
+   > 
+   > This commit refactors the media caching mechanism to create and manage separate cache instances for each unique media item (reciter, moshaf, and surah combination), rather than using a single global cache. This improves cache isolation, management, and robustness.
+   > This change also updates the project's Java compatibility to version 21 and enables the `-Xcontext-parameters` Kotlin compiler argument to support context receivers.
+   > - **Per-Item Cache Isolation:**
+   >     - **`CacheDataSource.kt`**:
+   >         - Introduced `CacheKey`, a value class to provide a type-safe wrapper for cache keys.
+   >         - The global `SimpleCache` and `CacheDataSource.Factory` have been replaced with `cacheMap` and `cacheFactoryMap` to store instances for each `CacheKey`.
+   >         - The `simpleCache` and `cacheDataSourceFactory` properties are now context-receiver extensions on `CacheKey`, which get or create a cache instance and factory specific to that key. Each cache is stored in its own subdirectory (e.g., `exoplayer_cache/reciter_#3_moshaf_#3_surah_#5`).
+   >         - The `getCacheInfo` function was refactored into a `cacheInfo` extension property on `CacheKey`.
+   >         - The `releaseCache` function now iterates through all managed caches, releases them individually, and clears the maps.
+   >         - Access to cache maps is synchronized to ensure thread safety.
+   > - **Integration with Media Service:**
+   >     - **`QuranMediaService.kt`**:
+   >         - The service now generates a `CacheKey` for the current media item.
+   >         - It uses the new `CacheKey`-specific `cacheDataSourceFactory` and `cacheInfo` properties to manage caching for the currently playing surah.
+   > - **Utils:**
+   >     - **`NumberExt.kt`**: Added convenient extension properties to convert `Int`, `Long`, `Float` and, `Double` to `KB`, `MB` and, `GB` data size units
+   > - **Build Configuration:**
+   >     - **`shared/build.gradle.kts`**:
+   >         - Updated `sourceCompatibility` and `targetCompatibility` for Java from version 11 to 21.
+   >         - Set the Kotlin `jvmTarget` to `JVM_21`.
+   >         - Added the `-Xcontext-parameters` free compiler argument to enable context receivers, which are used in the new caching implementation.
+------------------------------
+- ### New Crowdin updates (#5)
+   > Commit: 6fad769
+   > 
+   > * New translations strings.xml (English)
+   > * New translations strings.xml (English)
+   > * New translations strings.xml (English)
+------------------------------
+- ### Chore(ci): Upgrade upload-sarif GitHub Action to v4
+   > Commit: ae35216
+   > 
+   > This commit updates the `upload-sarif` GitHub Action from v3 to v4 in the Codacy security scan workflow.
+------------------------------
+- ### Refactor(UI/UX): Improve RTL support, code documentation, and UI consistency
+   > Commit: 00848a0
+   > 
+   > This commit introduces a wide range of improvements focused on enhancing the user experience, particularly for RTL languages, and improving code quality through refactoring and extensive documentation.
+   > - **RTL & Internationalization:**
+   >   - **`Auto-Mirroring Icons`**: Enabled `android:autoMirrored="true"` for numerous vector drawables (`search`, `language`, `theme`, etc.). This ensures icons automatically flip for right-to-left (RTL) layouts, improving UI consistency across locales.
+   >   - **`SettingsScreen UI`**: The layout of settings items has been refactored to better handle spacing and alignment, particularly for RTL languages. Font sizes are now adjusted based on the current locale to improve readability.
+   >   - **`String Resources`**: Renamed string resources from `surah_makkia`/`surah_madaneyya` to `surah_meccan`/`surah_medinan` for better clarity in the English localization.
+   > - **Code Quality & Documentation (KDoc):**
+   >   - **Refactoring & Renaming**:
+   >       - In `MainActivity.kt` and `SettingsDataStore.kt`, the `dynamicColors` variable was renamed to `isDynamicColorsEnabled` for improved clarity and consistency with boolean naming conventions.
+   >       - In `SettingsScreen.kt`, the `SettingsItemSummary` composable was extracted to better encapsulate the logic for displaying a setting's title and description.
+   >   - **Auto-Scrolling in `SurahsGrid`**: Refactored the `executeScroll` function to handle cases where the target item is off-screen more reliably. It now performs a small initial scroll to bring the item into the layout before animating to the final centered position.
+   >   - **Extensive KDoc**: Added comprehensive KDoc documentation across many composables and utility classes. This includes:
+   >     - `RecitersGrid.kt` and `SurahsGrid.kt`: Documented the main composables, container functions, title bars, and grid items.
+   >     - `ReciterCard.kt` and `SurahCard.kt`: Detailed explanations for the card composables and their sub-components.
+   >     - `ArabicPluralStringResource.kt`: Clarified its purpose as a workaround for Arabic pluralization.
+   >     - `QuranApplication.kt`: Documented the `LocaleInfo` data class.
+   >     - `SettingsScreen.kt`: Documented the `SettingsItemSummary` composable.
+   > - **Bug Fixes & Minor Improvements:**
+   >   - In `SurahsGrid.kt`, a bug in the `executeScroll` function was fixed where it was not correctly scrolling to items that were initially outside the viewport. The logic now correctly handles these cases for a smoother user experience.
+   >   - In `SettingsScreen.kt`, fixed a bug where the `SettingsItemSummary` would take up most of the space leaving no space for the setting item controls.
+   >   - Corrected the `autoMirrored` property placement in `book_24px.xml`.
+   >   - Removed commented-out debug code from `SurahsGrid.kt`.
+------------------------------
+- ### Refactor(Settings): Improve settings management and documentation
+   > Commit: f0642ef
+   > 
+   > This commit refactors the `SettingsDataStore` and related components to improve clarity, maintainability, and documentation. It introduces comprehensive KDoc for the entire settings management system, making the code easier to understand and use.
+   > - **`SettingsDataStore.kt` Refactoring & Documentation:**
+   >     - Extensive KDoc documentation has been added to the `SettingsDataStore` object, its inner classes (`SettingsData`, `Theme`, `SettingsKey`), and all public methods (`getLocale`, `setTheme`, `getDynamicColors`, etc.).
+   >     - The documentation clarifies the purpose of each component, including the observer pattern, DataStore keys, and the role of the in-memory cache (`lastSettingsData`).
+   >     - The `SettingsObserver` composable is now fully documented with usage examples.
+   > - **`QuranApplication.kt` Locale Handling:**
+   >     - A new `currentLocaleInfo` property has been added to provide a structured `LocaleInfo` object.
+   >     - This new property centralizes detailed locale information (language, country, code, RTL status) and is now fully documented.
+   >     - The existing `currentLocale` property has also been documented to clarify its behavior of fetching the app-specific or system default locale.
+   > - **Code Cleanup:**
+   >     - Unused imports were removed from `SettingsDataStore.kt`.
+   >     - Added `@Suppress("KotlinConstantConditions")` in `QuranApplication.kt` to handle a lint warning in the debug build check.
+------------------------------
+- ### Refactor(player): Improve duration handling and document Player UI
+   > Commit: d7de7eb
+   > 
+   > This commit refactors duration handling by replacing direct property access (e.g., `hoursLong`) with namespaced `hoursComponent` to improve clarity. It also changes the display of infinite durations from "∞" to "--" for a cleaner look.
+   > A significant part of this commit involves adding comprehensive KDoc documentation to the `FullScreenPlayer` composable and its sub-components. This enhances maintainability by clearly explaining the purpose, parameters, and behavior of each UI element.
+   > - **Duration Handling:**
+   >     - **`DurationEx.kt`**:
+   >         - Renamed duration component properties (e.g., `hoursLong` to `hoursComponent`) for better namespacing and discoverability.
+   >         - Updated KDoc to thoroughly explain the new component properties and their behavior.
+   >         - Changed the formatted string for infinite durations from "∞" and "Ꝏ" to a more neutral "--".
+   >     - The rest of the app (`ServiceStatus.kt`, `FullScreenPlayer.kt`, `MediaViewModel.kt`) has been updated to use the new `hoursComponent` property.
+   > - **Player UI Documentation:**
+   >     - **`FullScreenPlayer.kt`**: Added extensive KDoc documentation to the main `FullScreenPlayer` composable and all its private sub-components clarify the role, parameters, and layout logic of each part of the player UI.
+   > - **Minor Fixes:**
+   >     - **`QuranMediaService.kt`**: Removed logic that prepended "Loading..." to the surah title in the media notification, simplifying the metadata update process and optimistically showing the UI since caching was introduced and the actual loading will only happen once for every item when it's first played.
+   >     - **`FullScreenPlayer.kt`**: Improved handling of infinite durations in `PlayerDuration` to prevent potential issues when the player is buffering.
+------------------------------
+
+**Full Changelog**: https://github.com/abdalmoniem/AlQuran/compare/v0.0.8.1...v1.0.0

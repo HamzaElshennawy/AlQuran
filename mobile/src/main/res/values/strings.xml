@@ -41,6 +41,8 @@
     <string name="settings_about_section">عن التطبيق</string>
     <string name="settings_notifications_label">الإشعارات</string>
     <string name="settings_notifications_description">تغيير إعدادات الإشعارات</string>
+    <string name="settings_internal_files_label">فتح مجلد %s</string>
+    <string name="settings_internal_files_description">إدارة ملفات %s الداخلية</string>
     <string name="settings_translation_label">الترجمات</string>
     <string name="settings_translation_description">ساعد في ترجمة التطبيق على Crowdin</string>
     <string name="settings_privacy_policy_label">سياسة الخصوصية</string>

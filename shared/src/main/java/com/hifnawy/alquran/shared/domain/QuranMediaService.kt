@@ -366,7 +366,31 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
             .build()
     }
 
-    val loadControl by lazy {
+    /**
+     * A [DefaultLoadControl] instance configured for the [ExoPlayer].
+     *
+     * This property lazily initializes a [DefaultLoadControl] with custom buffer durations
+     * to optimize streaming performance. It defines how much media data the player should buffer
+     * before starting playback and during playback.
+     *
+     * The buffer settings are configured as follows:
+     * - [minBufferMs][DefaultLoadControl.Builder.minBufferMs]: 5 minutes. The minimum duration
+     *   of media that must be buffered before playback can start.
+     * - [maxBufferMs][DefaultLoadControl.Builder.maxBufferMs]: 10 minutes. The maximum duration
+     *   of media that will be buffered.
+     * - [bufferForPlaybackMs][DefaultLoadControl.Builder.bufferForPlaybackMs]: 1 second. The
+     *   duration of media that must be buffered for playback to start after a user action (e.g., seeking).
+     * - [bufferForPlaybackAfterRebufferMs][DefaultLoadControl.Builder.bufferForPlaybackAfterRebufferMs]: 2 seconds.
+     *   The duration of media that must be buffered for playback to resume after a rebuffer event.
+     *
+     * [setPrioritizeTimeOverSizeThresholds(true)][DefaultLoadControl.Builder.setPrioritizeTimeOverSizeThresholds] ensures that the buffer durations are strictly
+     * followed, regardless of the size of the buffered data in bytes. This is useful for audio streaming where predictable
+     * buffering time is more important than memory usage.
+     *
+     * @see DefaultLoadControl
+     * @see ExoPlayer
+     */
+    private val loadControl by lazy {
         @UnstableApi
         DefaultLoadControl.Builder().run {
             setBufferDurationsMs(
@@ -410,6 +434,47 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
             return (player.playbackState == Player.STATE_IDLE) || (player.playbackState == Player.STATE_BUFFERING)
         }
+
+    /**
+     * Indicates whether the current media is being played from a local file source
+     * versus a remote stream. This is typically determined by checking the scheme of the
+     * media URI (e.g., `file://` for local files).
+     *
+     * This can be useful for adjusting caching logic or UI indicators.
+     */
+    private val Uri.isLocal get() = scheme == "file"
+
+    /**
+     * Gets the current buffered position of the media.
+     *
+     * This property provides an adjusted value for the buffered position based on whether
+     * the media is being played from a local file or a remote stream.
+     *
+     * - If the media source is a local file (indicated by [isLocal]), it's assumed to be
+     *   fully available. In this case, the buffered position is considered equal to the
+     *   total duration of the media ([player.duration][ExoPlayer.duration]).
+     * - If the media is being streamed from a remote source, this property returns the
+     *   actual buffered position reported by the ExoPlayer instance ([player.bufferedPosition][ExoPlayer.bufferedPosition]).
+     */
+    private val Uri.bufferedPosition
+        get() = when {
+            isLocal -> player.duration
+            else    -> player.bufferedPosition
+        }
+
+    /**
+     * Gets the current buffered position of a Surah.
+     *
+     * This property provides an adjusted value for the buffered position based on whether
+     * the media is being played from a local file or a remote stream.
+     *
+     * - If the media source is a local file (indicated by [isLocal]), it's assumed to be
+     *   fully available. In this case, the buffered position is considered equal to the
+     *   total duration of the media ([player.duration][ExoPlayer.duration]).
+     * - If the media is being streamed from a remote source, this property returns the
+     *   actual buffered position reported by the ExoPlayer instance ([player.bufferedPosition][ExoPlayer.bufferedPosition]).
+     */
+    private val Surah.bufferedPosition get() = url?.toUri()?.bufferedPosition ?: player.bufferedPosition
 
     /**
      * A [Job] for the retry mechanism of the [QuranMediaService].
@@ -911,13 +976,14 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                 Timber.debug("${cacheKey.cacheInfo}")
 
                 when {
-                    surahUri.scheme == "file" -> setMediaItem(MediaItem.fromUri(surahUri)).also {
+                    surahUri.isLocal -> MediaItem.fromUri(surahUri).also {
+                        setMediaItem(it)
                         // if the surah was previously cached before download, delete its cached files
                         if (cacheKey.cacheInfo.isCached) cacheKey.delete()
                     }
 
                     // only use cache for surah URIs that are not local files (scheme is not "file")
-                    else                      -> MediaItem.Builder().run {
+                    else             -> MediaItem.Builder().run {
                         setUri(surahUri)
                         setCustomCacheKey(cacheKey.value)
                         build()
@@ -1119,7 +1185,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                             surah = surah,
                             durationMs = player.duration,
                             currentPositionMs = player.currentPosition,
-                            bufferedPositionMs = player.bufferedPosition
+                            bufferedPositionMs = surah.bufferedPosition
                     )
 
                     MediaSessionState.PLAYING   -> ServiceStatus.Playing(
@@ -1128,7 +1194,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                             surah = surah,
                             durationMs = player.duration,
                             currentPositionMs = player.currentPosition,
-                            bufferedPositionMs = player.bufferedPosition
+                            bufferedPositionMs = surah.bufferedPosition
                     )
 
                     MediaSessionState.PAUSED    -> ServiceStatus.Paused(
@@ -1137,7 +1203,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                             surah = surah,
                             durationMs = player.duration,
                             currentPositionMs = player.currentPosition,
-                            bufferedPositionMs = player.bufferedPosition
+                            bufferedPositionMs = surah.bufferedPosition
                     )
 
                     else                        -> quranApplication.lastStatusUpdate
