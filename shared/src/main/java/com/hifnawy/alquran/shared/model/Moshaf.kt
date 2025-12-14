@@ -22,15 +22,15 @@ import java.io.Serializable
  * @author AbdElMoniem ElHifnawy
  */
 data class Moshaf(
-        val id: Int,
-        val name: String,
-        val server: String,
+        val id: Int = -1,
+        val name: String = "",
+        val server: String = "",
         @SerializedName("surah_total")
-        val surahsCount: Int,
+        val surahsCount: Int = -1,
         @SerializedName("moshaf_type")
-        val moshafType: Int,
+        val moshafType: Int = -1,
         @SerializedName("surah_list")
-        private val surahIdsStr: String
+        private val surahIdsStr: String = ""
 ) : Serializable {
 
     /**

@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -61,9 +62,9 @@ import androidx.compose.ui.window.Dialog
 import com.hifnawy.alquran.QuranDownloadServiceObserver
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.QuranApplication
-import com.hifnawy.alquran.shared.domain.QuranDownloadService.QuranDownloadManager
-import com.hifnawy.alquran.shared.domain.QuranDownloadService.QuranDownloadManager.BulkDownloadRequest
-import com.hifnawy.alquran.shared.domain.QuranDownloadService.QuranDownloadManager.DownloadState
+import com.hifnawy.alquran.shared.domain.QuranDownloadManager
+import com.hifnawy.alquran.shared.domain.QuranDownloadManager.BulkDownloadRequest
+import com.hifnawy.alquran.shared.domain.QuranDownloadManager.DownloadState
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
 import com.hifnawy.alquran.shared.model.ReciterId
@@ -86,11 +87,14 @@ import com.hifnawy.alquran.shared.R as Rs
 /**
  * A Composable that displays a grid of Surahs for a specific reciter and moshaf.
  *
- * It includes a title bar with the reciter and moshaf name, a search bar to filter surahs,
- * and a lazy grid of [SurahCard] items. It also handles scrolling to the currently playing
- * surah card.
+ * This screen includes a title bar with the reciter and moshaf name, a search bar to filter
+ * surahs, a download button to download all surahs for the current moshaf, and a lazy grid
+ * of [SurahCard] items. It also handles automatically scrolling to the currently playing
+ * surah card if it's part of the displayed list.
  *
- * @param modifier [Modifier] The modifier to apply to the grid.
+ * A skeleton loader is shown via the [isSkeleton] flag while the surah list is being fetched.
+ *
+ * @param modifier [Modifier] The [Modifier] to apply to the grid.
  * @param reciter [Reciter] The [Reciter] for whom the surahs are being displayed.
  * @param moshaf [Moshaf] The current [Moshaf].
  * @param reciterSurahs [List< Surah >][List] The [List] of [Surah]s available for the reciter and moshaf.
@@ -100,6 +104,7 @@ import com.hifnawy.alquran.shared.R as Rs
  * @param playingMoshafId [Int?][Int] The id of the currently playing moshaf.
  * @param playingReciterId [ReciterId?][ReciterId] The id of the currently playing reciter.
  * @param onSurahCardClick [((surah: Surah) -> Unit)][onSurahCardClick] A callback to be called when a surah card is clicked.
+ *   providing the corresponding [Surah] object.
  */
 @Composable
 fun SurahsGrid(
@@ -214,7 +219,7 @@ fun SurahsGrid(
             )
 
             if (!isDownloadProgressDialogShown) return@Column
-            DownloadProgressDialog(
+            DownloadDialog(
                     reciter = reciter,
                     moshaf = moshaf,
                     reciterSurahs = reciterSurahs,
@@ -408,7 +413,7 @@ private suspend fun executeScroll(
 
     when (itemInfo) {
         null -> {
-            val scrollDirection = sign((index - firstVisibleItemIndex).toFloat())
+            val scrollDirection = sign((index - firstVisibleItemIndex) * 1f)
 
             val initialScrollDistance = animateScrollBy(
                     value = scrollDirection * surahCardHeight,
@@ -539,6 +544,22 @@ private fun TitleBar(
     }
 }
 
+/**
+ * A Composable that displays a download icon button.
+ *
+ * This button can be in one of two states:
+ * - **Normal State** ([isSkeleton] is `false`): It displays a clickable download icon.
+ *   When clicked, it invokes the [onClick] lambda.
+ * - **Skeleton State** ([isSkeleton] is `true`): It displays a placeholder [Spacer] with
+ *   a shimmering background provided by the [brush]. In this state, the button is not
+ *   clickable, and the [onClick] action is disabled.
+ *
+ * @param modifier [Modifier] The [Modifier] to be applied to the button or its skeleton.
+ * @param isSkeleton [Boolean] If `true`, a shimmering placeholder is shown. Otherwise a download icon is shown.
+ * @param brush [Brush?][Brush] The [Brush] used for the skeleton's background shimmer.
+ *   This is only required when [isSkeleton] is `true`.
+ * @param onClick [() -> Unit][onClick] A lambda to be executed when the button is clicked in its normal state.
+ */
 @Composable
 private fun DownloadButton(
         modifier: Modifier = Modifier,
@@ -562,9 +583,37 @@ private fun DownloadButton(
     }
 }
 
+/**
+ * A composable that displays a dialog to show the progress of bulk surah downloads.
+ *
+ * This composable observes the download progress from [QuranDownloadManager] via
+ * [QuranDownloadServiceObserver] to get real-time updates on the download progress.
+ * It manages the download lifecycle by `queueing`, `resuming`, or `pausing` downloads
+ * based on user interaction and component state.
+ *
+ * The dialog displays:
+ * - The `overall progress` of the bulk download.
+ * - The `progress` for the currently downloading surah.
+ * - Information like `downloaded size`, `total size`, and `percentage`.
+ *
+ * Internally, it uses a [LaunchedEffect] to `queue` or `resume` downloads and another to process
+ * state updates from the download service. When the downloads are `complete`, it automatically
+ * cleans up the download `queue`.
+ *
+ * @param reciter [Reciter] The [Reciter] for whom the surahs are being downloaded.
+ * @param moshaf [Moshaf] The [Moshaf] associated with the downloads.
+ * @param reciterSurahs [List< Surah >][List] The full [List] of [Surah]s to be downloaded.
+ * @param areDownloadsPaused [Boolean] A [Boolean] state indicating if the downloads have
+ *   been paused. Used to decide whether to queue or resume downloads.
+ * @param onDownloadsPaused [() -> Unit = {}][onDownloadsPaused] A callback invoked when
+ *   the user pauses the downloads via the `Cancel` button.
+ * @param onDismissRequest [() -> Unit = {}][onDismissRequest] A callback to dismiss the
+ *   dialog. In this implementation, it's called when the `Cancel` button is clicked.
+ *   The dialog is intentionally not dismissible by tapping outside or pressing the back button.
+ */
 @Composable
 @SuppressLint("UnsafeOptInUsageError")
-private fun DownloadProgressDialog(
+private fun DownloadDialog(
         reciter: Reciter,
         moshaf: Moshaf,
         reciterSurahs: List<Surah>,
@@ -572,26 +621,20 @@ private fun DownloadProgressDialog(
         onDownloadsPaused: () -> Unit = {},
         onDismissRequest: () -> Unit = {}
 ) {
-    val fontSize = 25.sp
-    val progressIndicatorHeight = 25.dp
-
     val context = LocalContext.current
     val bulkDownloadRequest = BulkDownloadRequest(reciter = reciter, moshaf = moshaf, surahs = reciterSurahs)
 
-    var downloadedSize by remember { mutableStateOf("") }
-    var downloadTotalSize by remember { mutableStateOf("") }
+    var downloadedSize by remember { mutableLongStateOf(0L) }
+    var downloadTotalSize by remember { mutableLongStateOf(0L) }
     var downloadedSurahsCount by remember { mutableIntStateOf(0) }
     var downloadPercentage by remember { mutableFloatStateOf(0f) }
-    var downloadSurah by remember { mutableStateOf<Surah?>(null) }
+    var downloadSurah by remember { mutableStateOf(Surah()) }
     var downloadState by remember { mutableStateOf(DownloadState()) }
 
-    QuranDownloadServiceObserver { state ->
-        downloadState = state
-        Timber.debug("$downloadState")
-    }
+    QuranDownloadServiceObserver { newState ->
+        Timber.debug("$newState")
 
-    LaunchedEffect(Unit) {
-        Timber.debug("$bulkDownloadRequest")
+        downloadState = newState
     }
 
     LaunchedEffect(areDownloadsPaused) {
@@ -604,13 +647,68 @@ private fun DownloadProgressDialog(
     LaunchedEffect(downloadState) {
         if (downloadState.state == DownloadState.State.COMPLETED) downloadedSurahsCount++
 
-        downloadSurah = downloadState.data?.surah
+        downloadSurah = downloadState.data.surah
         downloadPercentage = downloadState.percentage
-        downloadedSize = downloadState.downloaded.asLocalizedHumanReadableSize
-        downloadTotalSize = downloadState.total.asLocalizedHumanReadableSize
+        downloadedSize = downloadState.downloaded
+        downloadTotalSize = downloadState.total
 
         if (downloadedSurahsCount >= reciterSurahs.size) QuranDownloadManager.removeDownloads(context = context, bulkDownloadRequest = bulkDownloadRequest)
     }
+
+    DownloadDialogContent(
+            downloadSurah = downloadSurah,
+            downloadedSize = downloadedSize,
+            downloadTotalSize = downloadTotalSize,
+            downloadedSurahsCount = downloadedSurahsCount,
+            downloadPercentage = downloadPercentage,
+            totalSurahsCount = reciterSurahs.size,
+            onPauseClicked = {
+                QuranDownloadManager.pauseDownloads(context = context, bulkDownloadRequest = bulkDownloadRequest)
+
+                onDownloadsPaused()
+                onDismissRequest()
+            }
+    )
+}
+
+/**
+ * A private UI-only composable that renders the download progress dialog.
+ *
+ * This function is responsible for displaying the visual elements of the download
+ * progress, including overall progress and the progress for the current surah. It
+ * receives all the necessary data as parameters and does not contain any business logic itself.
+ * It shows:
+ * - Overall progress of the bulk download (how many surahs have been downloaded out of the total).
+ * - Progress of the currently downloading surah, including its `name`, `downloaded size`, `total size`, and `percentage`.
+ * - Two [LinearProgressIndicator]s to visualize both overall and current surah progress.
+ *
+ * The dialog is not dismissible by tapping outside or pressing the back button, only through the provided `Cancel` button.
+ *
+ * @param downloadSurah [Surah] The [Surah] currently being downloaded.
+ * @param downloadedSize [Long] The downloaded size in bytes of the current [Surah] being downloaded.
+ * @param downloadTotalSize [Long] The total size in bytes of the current [Surah] being downloaded.
+ * @param downloadedSurahsCount [Int] The number of [Surah]s that have been successfully downloaded so far.
+ * @param downloadPercentage [Float] The download progress percentage (`0f` to `100f`) for the current surah.
+ * @param totalSurahsCount [Int] The total number of [Surah]s in the bulk download queue.
+ * @param onPauseClicked [() -> Unit = {}][onPauseClicked] A callback invoked when the user clicks the `Cancel` button.
+ */
+@Composable
+private fun DownloadDialogContent(
+        downloadSurah: Surah,
+        downloadedSize: Long,
+        downloadTotalSize: Long,
+        downloadedSurahsCount: Int,
+        downloadPercentage: Float,
+        totalSurahsCount: Int,
+        onPauseClicked: () -> Unit = {}
+) {
+    val fontSize = 25.sp
+    val progressIndicatorHeight = 25.dp
+    val downloadedSizeFmt = downloadedSize.asLocalizedHumanReadableSize
+    val downloadTotalSizeFmt = downloadTotalSize.asLocalizedHumanReadableSize
+    val downloadProgressFmt = stringResource(R.string.download_progress, downloadedSizeFmt, downloadTotalSizeFmt)
+    val downloadPercentageFmt = stringResource(R.string.download_percentage, downloadPercentage)
+    val downloadSurahFmt = downloadSurah.run { stringResource(R.string.downloading_surah, id, name) }
 
     Dialog(onDismissRequest = { }) {
         Column(
@@ -632,7 +730,7 @@ private fun DownloadProgressDialog(
 
             Text(
                     modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(R.string.download_count, downloadedSurahsCount, reciterSurahs.size),
+                    text = stringResource(R.string.download_count, downloadedSurahsCount, totalSurahsCount),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = fontSize,
@@ -643,24 +741,21 @@ private fun DownloadProgressDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(progressIndicatorHeight),
-                    progress = { downloadedSurahsCount / reciterSurahs.size.toFloat() }
+                    progress = { downloadedSurahsCount * 1f / totalSurahsCount }
             )
-
-            downloadSurah?.run {
-                Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(R.string.downloading_surah, id, name),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = fontSize,
-                        fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
-                )
-            }
 
             Text(
                     modifier = Modifier.fillMaxWidth(),
-                    text = "${stringResource(R.string.download_progress, downloadedSize, downloadTotalSize)} " +
-                           "(${stringResource(R.string.download_percentage, downloadPercentage)})",
+                    text = downloadSurahFmt,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = fontSize,
+                    fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
+            )
+
+            Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = "$downloadProgressFmt ($downloadPercentageFmt)",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = fontSize,
@@ -671,21 +766,13 @@ private fun DownloadProgressDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(progressIndicatorHeight),
-                    progress = {
-                        if (downloadState.total == 0L) return@LinearProgressIndicator 0f
-
-                        downloadState.downloaded.toFloat() / downloadState.total.toFloat()
-                    }
+                    progress = { downloadedSize * 1f / downloadTotalSize }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
-                    onClick = {
-                        QuranDownloadManager.pauseDownloads(context = context, bulkDownloadRequest = bulkDownloadRequest)
-                        onDownloadsPaused()
-                        onDismissRequest()
-                    },
+                    onClick = onPauseClicked,
                     colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary

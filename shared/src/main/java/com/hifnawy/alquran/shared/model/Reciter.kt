@@ -44,10 +44,10 @@ val Int.asReciterId: ReciterId get() = ReciterId(this)
  * @author AbdElMoniem ElHifnawy
  */
 data class Reciter(
-        val id: ReciterId,
-        val name: String,
-        val letter: String,
-        val date: String,
+        val id: ReciterId = ReciterId(-1),
+        val name: String = "",
+        val letter: String = "",
+        val date: String = "",
         @SerializedName("moshaf")
-        val moshafList: List<Moshaf>
+        val moshafList: List<Moshaf> = emptyList()
 ) : Serializable

@@ -160,7 +160,7 @@ object MediaManager : LifecycleOwner {
             else               -> "${moshaf.server}$surahNum.mp3"
         }
 
-        url = surahUrl
+        uri = surahUrl
     }
 
     private val ReciterId.moshafSurahs: MoshafSurahs

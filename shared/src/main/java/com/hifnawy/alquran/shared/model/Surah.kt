@@ -4,13 +4,13 @@ import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
 data class Surah(
-        val id: Int,
-        val name: String,
+        val id: Int = -1,
+        val name: String = "",
         @SerializedName("start_page")
-        val startPage: Int,
+        val startPage: Int = -1,
         @SerializedName("end_page")
-        val endPage: Int,
-        val makkia: Int,
-        val type: Int,
-        var url: String? = null
+        val endPage: Int = -1,
+        val makkia: Int = -1,
+        val type: Int = -1,
+        var uri: String? = null
 ) : Serializable

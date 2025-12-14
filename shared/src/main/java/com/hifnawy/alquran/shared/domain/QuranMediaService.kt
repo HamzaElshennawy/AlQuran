@@ -474,7 +474,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      * - If the media is being streamed from a remote source, this property returns the
      *   actual buffered position reported by the ExoPlayer instance ([player.bufferedPosition][ExoPlayer.bufferedPosition]).
      */
-    private val Surah.bufferedPosition get() = url?.toUri()?.bufferedPosition ?: player.bufferedPosition
+    private val Surah.bufferedPosition get() = uri?.toUri()?.bufferedPosition ?: player.bufferedPosition
 
     /**
      * A [Job] for the retry mechanism of the [QuranMediaService].
@@ -793,7 +793,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         updateNotification(reciter, surah)
         updateMetadata(surah)
 
-        val surahUri = surah.url?.toUri() ?: return
+        val surahUri = surah.uri?.toUri() ?: return
         if (player.playbackState == Player.STATE_BUFFERING) return
 
         @UnstableApi

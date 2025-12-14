@@ -155,7 +155,7 @@ open class AndroidAutoMediaBrowser : MediaBrowserServiceCompat() {
         setMediaId(mediaId)
         setTitle(surah.name)
 
-        surah.url?.let { setMediaUri(it.toUri()) }
+        surah.uri?.let { setMediaUri(it.toUri()) }
 
         setIconBitmap((AppCompatResources.getDrawable(this@AndroidAutoMediaBrowser, surah.surahDrawableId) as BitmapDrawable).bitmap)
 

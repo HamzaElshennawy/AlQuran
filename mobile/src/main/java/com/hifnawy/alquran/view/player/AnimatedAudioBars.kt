@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -23,26 +26,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.unit.times
 import kotlin.random.Random
 
 @Composable
 fun AnimatedAudioBars(
         modifier: Modifier = Modifier,
-        width: Dp = 40.dp,
         height: Dp = 40.dp,
         barCount: Int = 7,
         barWidth: Dp = 3.dp,
         barSpacing: Dp = 2.dp,
-        color: Color = MaterialTheme.colorScheme.tertiary,
-        durationRangeMs: IntRange = 100..150
+        durationRangeMs: IntRange = 100..150,
+        color: Color = MaterialTheme.colorScheme.primary
 ) {
-    val barMaxHeight = height - 5.dp
     val barMinHeight = 5.dp
+    val barMaxHeight = height - 5.dp
+    val width = barCount * (barWidth + barSpacing)
 
     Row(
             modifier = modifier
-                .width(width)
-                .height(height)
+                .requiredWidth(width)
+                .requiredHeight(height)
                 .clipToBounds(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center

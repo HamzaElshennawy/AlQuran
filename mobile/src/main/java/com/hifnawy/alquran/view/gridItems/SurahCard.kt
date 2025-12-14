@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -82,7 +83,9 @@ fun SurahCard(
             onClick = { if (surah != null) onClick(surah) },
     ) {
         Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(15.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -99,23 +102,24 @@ fun SurahCard(
                     surah = surah
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             AnimatedVisibility(
+                    modifier = Modifier.fillMaxWidth(),
                     visible = !isSkeleton && isPlaying,
                     enter = scaleIn(
                             animationSpec = floatAnimationSpec,
-                            transformOrigin = TransformOrigin(0f, 0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                     ) + fadeIn(animationSpec = floatAnimationSpec) + expandIn(
                             animationSpec = intSizeAnimationSpec,
-                            expandFrom = Alignment.TopStart
+                            expandFrom = Alignment.Center
                     ),
                     exit = scaleOut(
                             animationSpec = floatAnimationSpec,
-                            transformOrigin = TransformOrigin(0f, 0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                     ) + fadeOut(animationSpec = floatAnimationSpec) + shrinkOut(
                             animationSpec = intSizeAnimationSpec,
-                            shrinkTowards = Alignment.TopStart
+                            shrinkTowards = Alignment.Center
                     )
 
             ) {
@@ -154,7 +158,6 @@ private fun SurahName(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp)
-                        .padding(10.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(brush)
             )
@@ -163,13 +166,16 @@ private fun SurahName(
         else       -> {
             if (surah == null) return
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = highlightMatchingText(
                             fullText = surah.name,
                             query = searchQuery,
                             highlightColor = MaterialTheme.colorScheme.primary,
                             defaultColor = MaterialTheme.colorScheme.onSurface
                     ),
+                    textAlign = TextAlign.Center,
                     fontSize = when {
                         QuranApplication.currentLocaleInfo.isRTL -> 45.sp
                         else                                     -> 30.sp
@@ -204,7 +210,6 @@ private fun SurahType(
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
                         .height(30.dp)
-                        .padding(10.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(brush)
             )
@@ -213,10 +218,14 @@ private fun SurahType(
         else       -> {
             if (surah == null) return
             Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = when (surah.makkia) {
                         1 -> stringResource(R.string.surah_meccan)
                         else -> stringResource(R.string.surah_medinan)
                     },
+                    textAlign = TextAlign.Center,
                     fontSize = 25.sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
             )

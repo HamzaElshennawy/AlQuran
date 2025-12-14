@@ -147,7 +147,7 @@ private fun MiniPlayerContent(
     Row(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 15.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
     ) {
 
@@ -188,7 +188,7 @@ private fun MiniPlayerSurahInfo(
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(15.dp))
 
             Column {
                 Text(
@@ -242,7 +242,7 @@ private fun OverlayPlayerControls(
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(15.dp))
 
         IconButton(
                 modifier = Modifier.size(32.dp),

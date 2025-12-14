@@ -11,7 +11,9 @@ import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hifnawy.alquran.R
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
@@ -71,9 +74,9 @@ fun MoshafCard(
         Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 10.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Icon(
                     painter = painterResource(id = R.drawable.book_24px),
@@ -82,32 +85,35 @@ fun MoshafCard(
 
             Text(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 10.dp)
+                        .weight(10f)
+                        .fillMaxWidth()
+                        .height(40.dp)
                         .basicMarquee(),
                     text = "${moshaf.name} - ${arabicPluralStringResource(R.plurals.surah_count, moshaf.surahsCount)}",
+                    fontSize = 20.sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
             )
 
             AnimatedVisibility(
+                    modifier = Modifier.weight(1f),
                     visible = isPlaying,
                     enter = scaleIn(
                             animationSpec = floatAnimationSpec,
-                            transformOrigin = TransformOrigin(0f, 0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                     ) + fadeIn(animationSpec = floatAnimationSpec) + expandIn(
                             animationSpec = intSizeAnimationSpec,
-                            expandFrom = Alignment.TopStart
+                            expandFrom = Alignment.Center
                     ),
                     exit = scaleOut(
                             animationSpec = floatAnimationSpec,
-                            transformOrigin = TransformOrigin(0f, 0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                     ) + fadeOut(animationSpec = floatAnimationSpec) + shrinkOut(
                             animationSpec = intSizeAnimationSpec,
-                            shrinkTowards = Alignment.TopStart
+                            shrinkTowards = Alignment.Center
                     )
 
             ) {
-                AnimatedAudioBars()
+                AnimatedAudioBars(height = 40.dp)
             }
         }
     }

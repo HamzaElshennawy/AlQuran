@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -97,9 +98,12 @@ fun ReciterCard(
         Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(10.dp)
         ) {
             Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     verticalAlignment = Alignment.CenterVertically
             ) {
                 Chevron(
@@ -109,58 +113,52 @@ fun ReciterCard(
                         isExpanded = isExpanded
                 )
 
-                Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 10.dp)
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(10f)) {
+                    ReciterName(
+                            isSkeleton = isSkeleton,
+                            brush = brush,
+                            reciter = reciter,
+                            searchQuery = searchQuery
+                    )
+
+                    MoshafCount(
+                            isSkeleton = isSkeleton,
+                            brush = brush,
+                            moshafCount = reciter?.moshafList?.size
+                    )
+                }
+
+                AnimatedVisibility(
+                        modifier = Modifier.weight(1f),
+                        visible = !isSkeleton && isPlaying,
+                        enter = scaleIn(
+                                animationSpec = floatAnimationSpec,
+                                transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        ) + fadeIn(animationSpec = floatAnimationSpec) + expandIn(
+                                animationSpec = intSizeAnimationSpec,
+                                expandFrom = Alignment.Center
+                        ),
+                        exit = scaleOut(
+                                animationSpec = floatAnimationSpec,
+                                transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        ) + fadeOut(animationSpec = floatAnimationSpec) + shrinkOut(
+                                animationSpec = intSizeAnimationSpec,
+                                shrinkTowards = Alignment.Center
+                        )
+
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            ReciterName(
-                                    isSkeleton = isSkeleton,
-                                    brush = brush,
-                                    reciter = reciter,
-                                    searchQuery = searchQuery
-                            )
-
-                            MoshafCount(
-                                    isSkeleton = isSkeleton,
-                                    brush = brush,
-                                    moshafCount = reciter?.moshafList?.size
-                            )
-                        }
-
-                        AnimatedVisibility(
-                                visible = !isSkeleton && isPlaying,
-                                enter = scaleIn(
-                                        animationSpec = floatAnimationSpec,
-                                        transformOrigin = TransformOrigin(0f, 0f)
-                                ) + fadeIn(animationSpec = floatAnimationSpec) + expandIn(
-                                        animationSpec = intSizeAnimationSpec,
-                                        expandFrom = Alignment.TopStart
-                                ),
-                                exit = scaleOut(
-                                        animationSpec = floatAnimationSpec,
-                                        transformOrigin = TransformOrigin(0f, 0f)
-                                ) + fadeOut(animationSpec = floatAnimationSpec) + shrinkOut(
-                                        animationSpec = intSizeAnimationSpec,
-                                        shrinkTowards = Alignment.TopStart
-                                )
-
-                        ) {
-                            AnimatedAudioBars(modifier = Modifier.padding(10.dp))
-                        }
-                    }
+                    AnimatedAudioBars()
                 }
             }
 
             if (reciter == null) return@Card
+            Spacer(modifier = Modifier.height(10.dp))
             AnimatedVisibility(visible = isExpanded) {
                 Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 10.dp, bottom = 10.dp, end = 10.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     reciter.moshafList.forEach { moshaf ->
                         MoshafCard(
@@ -198,8 +196,7 @@ private fun Chevron(
             if (brush == null) return
             Box(
                     modifier = Modifier
-                        .size(50.dp)
-                        .padding(10.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
                         .background(brush)
             )
@@ -215,9 +212,7 @@ private fun Chevron(
             }
 
             Icon(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .padding(10.dp),
+                    modifier = Modifier.size(32.dp),
                     painter = painterResource(id = iconDrawableId),
                     contentDescription = "Show Moshafs"
             )
@@ -249,9 +244,9 @@ private fun ReciterName(
             if (brush == null) return
             Spacer(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(0.5f)
                         .height(60.dp)
-                        .padding(10.dp)
+                        .padding(vertical = 10.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(brush)
             )
@@ -260,7 +255,9 @@ private fun ReciterName(
         else       -> {
             if (reciter == null) return
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = highlightMatchingText(
                             fullText = reciter.name,
                             query = searchQuery,
@@ -298,7 +295,7 @@ private fun MoshafCount(
                     modifier = Modifier
                         .fillMaxWidth(0.35f)
                         .height(50.dp)
-                        .padding(10.dp)
+                        .padding(vertical = 10.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(brush)
             )
@@ -307,7 +304,9 @@ private fun MoshafCount(
         else       -> {
             if (moshafCount == null) return
             Text(
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
                     text = arabicPluralStringResource(R.plurals.moshaf_count, moshafCount),
                     fontSize = 30.sp,
                     fontFamily = FontFamily(Font(Rs.font.aref_ruqaa))
