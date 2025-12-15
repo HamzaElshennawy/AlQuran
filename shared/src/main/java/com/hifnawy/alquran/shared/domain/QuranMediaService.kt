@@ -45,12 +45,17 @@ import com.hifnawy.alquran.shared.domain.QuranMediaService.Extras.EXTRA_MOSHAF
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Extras.EXTRA_RECITER
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Extras.EXTRA_SEEK_POSITION
 import com.hifnawy.alquran.shared.domain.QuranMediaService.Extras.EXTRA_SURAH
-import com.hifnawy.alquran.shared.domain.QuranMediaService.MediaSessionState.Companion.fromState
+import com.hifnawy.alquran.shared.domain.QuranMediaService.MediaSessionState.Companion.asMediaSessionState
 import com.hifnawy.alquran.shared.model.Moshaf
 import com.hifnawy.alquran.shared.model.Reciter
 import com.hifnawy.alquran.shared.model.Surah
 import com.hifnawy.alquran.shared.utils.DrawableResUtil.surahDrawableId
-import com.hifnawy.alquran.shared.utils.ExoPlayerEx
+import com.hifnawy.alquran.shared.utils.ExoPlayerEx.PlayerState
+import com.hifnawy.alquran.shared.utils.ExoPlayerEx.PlayerState.BUFFERING
+import com.hifnawy.alquran.shared.utils.ExoPlayerEx.PlayerState.Companion.asPlayerState
+import com.hifnawy.alquran.shared.utils.ExoPlayerEx.PlayerState.ENDED
+import com.hifnawy.alquran.shared.utils.ExoPlayerEx.PlayerState.IDLE
+import com.hifnawy.alquran.shared.utils.ExoPlayerEx.PlayerState.READY
 import com.hifnawy.alquran.shared.utils.ExoPlayerEx.asString
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
 import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.error
@@ -272,10 +277,60 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         STOPPED(PlaybackStateCompat.STATE_STOPPED);
 
         /**
+         * Indicates whether the media session is currently playing.
+         *
+         * @see PLAYING
+         */
+        val isPlaying get() = this == PLAYING
+
+        /**
+         * Indicates whether the media session is currently paused.
+         *
+         * @see PAUSED
+         */
+        val isPaused get() = this == PAUSED
+
+        /**
+         * Indicates whether the media session is currently skipping to the next media item.
+         *
+         * @see SKIPPING_TO_NEXT
+         */
+        val isSkippingToNext get() = this == SKIPPING_TO_NEXT
+
+        /**
+         * Indicates whether the media session is currently skipping to the previous media item.
+         *
+         * @see SKIPPING_TO_PREVIOUS
+         */
+        val isSkippingToPrevious get() = this == SKIPPING_TO_PREVIOUS
+
+        /**
+         * Indicates whether the media session is currently buffering.
+         *
+         * @see BUFFERING
+         */
+        val isBuffering get() = this == BUFFERING
+
+        /**
+         * Indicates whether the media session is currently connecting.
+         *
+         * @see CONNECTING
+         */
+        val isConnecting get() = this == CONNECTING
+
+        /**
+         * Indicates whether the media session is currently stopped.
+         *
+         * @see STOPPED
+         */
+        val isStopped get() = this == STOPPED
+
+        /**
          * Companion object for the [MediaSessionState] enum.
          *
-         * @property fromState [MediaSessionState] A utility function to convert an integer state from [PlaybackStateCompat]
-         *           to its corresponding [MediaSessionState] enum constant.
+         * @property asMediaSessionState [MediaSessionState] A utility property
+         *   to convert an integer state from [PlaybackStateCompat] to its corresponding
+         *   [MediaSessionState] enum constant.
          *
          * @author AbdElMoniem ElHifnawy
          *
@@ -285,20 +340,19 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         companion object {
 
             /**
-             * Retrieves the [MediaSessionState] enum constant corresponding to a given
-             * [PlaybackStateCompat] integer state value.
+             * Converts an integer state from [PlaybackStateCompat] to its corresponding [MediaSessionState].
              *
-             * This is a utility function to convert the integer-based state from Android's
-             * `PlaybackStateCompat` into a more readable and type-safe [MediaSessionState] enum.
+             * This extension property provides a safe and convenient way to translate the integer-based
+             * state from Android's [PlaybackStateCompat] into a more readable and type-safe
+             * [MediaSessionState] enum.
              *
-             * @param state [Int] The integer state value from `PlaybackStateCompat`.
+             * @receiver [Int] The integer state value from [PlaybackStateCompat].
              *
-             *  @return [MediaSessionState] The matching [MediaSessionState] enum constant.
+             * @return [MediaSessionState] The matching [MediaSessionState] enum constant.
              *
              * @throws NoSuchElementException if no enum constant matches the provided state integer.
              */
-            @Suppress("unused")
-            fun fromState(state: Int) = entries.first { it.state == state }
+            val Int.asMediaSessionState get() = entries.first { it.state == this }
         }
     }
 
@@ -352,7 +406,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      *
      * This property lazily retrieves the playback state from the media session's controller.
      */
-    private val mediaSessionState get() = mediaSession.controller?.playbackState?.state
+    private val mediaSessionState get() = mediaSession.controller.playbackState.state
 
     /**
      * The [AudioAttributes] used for media playback in the service.
@@ -426,13 +480,13 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      * Returns whether the retry mechanism should be running.
      *
      * This property returns `true` if the media session state is not [MediaSessionState.STOPPED] and the player's
-     * playback state is either [Player.STATE_IDLE] or [Player.STATE_BUFFERING]. Otherwise, it returns `false`.
+     * playback state is either [PlayerState.IDLE] or [PlayerState.BUFFERING]. Otherwise, it returns `false`.
      */
     private val shouldRetry: Boolean
         get() {
-            if (mediaSessionState == MediaSessionState.STOPPED.state) return false
+            if (mediaSessionState.asMediaSessionState.isStopped) return false
 
-            return (player.playbackState == Player.STATE_IDLE) || (player.playbackState == Player.STATE_BUFFERING)
+            return player.playbackState.asPlayerState.run { isIdle || isBuffering }
         }
 
     /**
@@ -672,7 +726,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      * @param error [PlaybackException] The error that occurred.
      */
     override fun onPlayerError(error: PlaybackException) {
-        if (mediaSessionState == MediaSessionState.STOPPED.state) return
+        if (mediaSessionState.asMediaSessionState.isStopped) return
 
         Timber.error("Playback Error ${error.errorCode}: ${error.message}")
         Timber.error("Playback Error Cause: ${error.cause?.message}")
@@ -716,14 +770,14 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
     override fun onPlaybackStateChanged(state: Int) {
         super.onPlaybackStateChanged(state)
 
-        Timber.debug("Playback State: ${ExoPlayerEx.PlayerState.fromState(state)}")
+        Timber.debug("Playback State: ${state.asPlayerState}")
 
         val reciter = currentReciter ?: return
         val moshaf = currentMoshaf ?: return
         val surah = currentSurah ?: return
 
-        when (state) {
-            Player.STATE_BUFFERING -> {
+        when (state.asPlayerState) {
+            BUFFERING -> {
                 setMediaSessionState(MediaSessionState.BUFFERING)
                 quranApplication.lastStatusUpdate = ServiceStatus.Buffering(
                         reciter = reciter,
@@ -735,7 +789,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                 )
             }
 
-            Player.STATE_READY     -> when {
+            READY     -> when {
                 player.isPlaying -> {
                     setMediaSessionState(MediaSessionState.PLAYING)
                     quranApplication.lastStatusUpdate = ServiceStatus.Playing(
@@ -763,9 +817,9 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
                 }
             }
 
-            Player.STATE_IDLE      -> Unit
+            IDLE      -> Unit
 
-            Player.STATE_ENDED     -> {
+            ENDED     -> {
                 setMediaSessionState(MediaSessionState.STOPPED)
                 quranApplication.lastStatusUpdate = ServiceStatus.Stopped
 
@@ -794,7 +848,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         updateMetadata(surah)
 
         val surahUri = surah.uri?.toUri() ?: return
-        if (player.playbackState == Player.STATE_BUFFERING) return
+        if (player.playbackState.asPlayerState.isBuffering) return
 
         @UnstableApi
         playMedia(surah, surahUri)
@@ -859,9 +913,9 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
     private fun updateMetadata(surah: Surah) {
         val surahDrawableBitmap = (AppCompatResources.getDrawable(this@QuranMediaService, surah.surahDrawableId) as BitmapDrawable).bitmap
 
-        val duration = when (player.playbackState) {
-            Player.STATE_READY -> player.duration
-            else               -> 0
+        val duration = when (player.playbackState.asPlayerState) {
+            READY -> player.duration
+            else  -> 0
         }
 
         val metadata = MediaMetadataCompat.Builder().run {
@@ -886,7 +940,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         val previousState = lastMediaSessionState
         lastMediaSessionState = mediaSessionState
 
-        if ((mediaSessionState == MediaSessionState.BUFFERING) && (previousState == MediaSessionState.BUFFERING)) return
+        previousState?.let { if (mediaSessionState.isBuffering && it.isBuffering) return }
 
         val readyActions = PlaybackStateCompat.ACTION_PAUSE or
                 PlaybackStateCompat.ACTION_PLAY or
@@ -903,23 +957,19 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         val stoppedActions = PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID // PlaybackStateCompat.ACTION_PLAY
 
         val playbackStateBuilder = PlaybackStateCompat.Builder().apply {
-            when (mediaSessionState) {
-                MediaSessionState.PLAYING,
-                MediaSessionState.PAUSED               -> setActions(readyActions)
-
-                MediaSessionState.SKIPPING_TO_NEXT,
-                MediaSessionState.SKIPPING_TO_PREVIOUS -> setActions(skipActions)
-
-                MediaSessionState.CONNECTING,
-                MediaSessionState.BUFFERING            -> setActions(bufferingActions)
-
-                MediaSessionState.STOPPED              -> setActions(stoppedActions)
+            mediaSessionState.run {
+                when {
+                    isPlaying || isPaused                    -> setActions(readyActions)
+                    isSkippingToNext || isSkippingToPrevious -> setActions(skipActions)
+                    isConnecting || isBuffering              -> setActions(bufferingActions)
+                    isStopped                                -> setActions(stoppedActions)
+                }
             }
         }
 
-        val playBackSpeed = when (mediaSessionState) {
-            MediaSessionState.BUFFERING -> 0f
-            else                        -> 1f
+        val playBackSpeed = when {
+            mediaSessionState.isBuffering -> 0f
+            else                          -> 1f
         }
 
         if (mediaSessionState != MediaSessionState.STOPPED) playbackStateBuilder.setBufferedPosition(player.bufferedPosition)
@@ -1165,7 +1215,7 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
         positionUpdateJob?.cancel()
 
         positionUpdateJob = serviceScope.launch {
-            while ((player.playbackState == Player.STATE_READY) || (player.playbackState == Player.STATE_BUFFERING)) {
+            while (player.playbackState.asPlayerState.run { isReady || isBuffering }) {
                 Timber.debug(player.asString)
 
                 val reciter = currentReciter ?: break
@@ -1174,9 +1224,9 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
 
                 val mediaSessionState = when {
                     player.isPlaying -> MediaSessionState.PLAYING
-                    else             -> when (player.playbackState) {
-                        Player.STATE_BUFFERING -> MediaSessionState.BUFFERING
-                        else                   -> MediaSessionState.PAUSED
+                    else             -> when (player.playbackState.asPlayerState) {
+                        BUFFERING -> MediaSessionState.BUFFERING
+                        else      -> MediaSessionState.PAUSED
                     }
                 }
 
@@ -1252,11 +1302,11 @@ class QuranMediaService : AndroidAutoMediaBrowser(),
      * This function checks the current playback state and attempts to recover playback by either preparing the
      * player or playing the player depending on the current state.
      *
-     * If playback is already in the [Player.STATE_READY] state and is playing, this function cancels the retry job
+     * If playback is already in the [PlayerState.READY] state and is playing, this function cancels the retry job
      * and returns. If playback is in any other state, this function prepares the player and plays it.
      */
     private fun attemptRecovery() {
-        if ((player.playbackState == Player.STATE_READY) && (player.isPlaying)) {
+        if (player.playbackState.asPlayerState.isReady && player.isPlaying) {
             Timber.debug("Playback Recovered!")
             retryJob?.cancel()
             return
