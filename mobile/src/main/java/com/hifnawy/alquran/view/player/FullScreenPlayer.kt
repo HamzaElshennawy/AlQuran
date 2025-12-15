@@ -78,6 +78,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -809,8 +810,10 @@ private fun RecitationInfo(
                 Text(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
                             .basicMarquee(),
                         text = state.surah?.name ?: stringResource(R.string.loading),
+                        textAlign = TextAlign.Center,
                         fontSize = surahFontSize,
                         fontFamily = when {
                             QuranApplication.currentLocaleInfo.isRTL -> FontFamily(Font(Rs.font.decotype_thuluth_2))
@@ -820,15 +823,14 @@ private fun RecitationInfo(
                 )
             }
 
-            AutoSizeText(
-                    modifier = Modifier
-                        .wrapContentHeight()
-            ) {
+            AutoSizeText(modifier = Modifier.wrapContentHeight()) {
                 Text(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
                             .basicMarquee(),
                         text = state.reciter?.name ?: stringResource(R.string.loading),
+                        textAlign = TextAlign.Center,
                         fontSize = reciterFontSize,
                         fontFamily = FontFamily(Font(Rs.font.aref_ruqaa)),
                         color = Color.White.copy(alpha = 0.8f),
