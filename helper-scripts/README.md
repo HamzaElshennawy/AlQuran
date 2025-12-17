@@ -5,21 +5,23 @@ application. These scripts automate tasks related to data generation, asset mana
 development workflows.
 
 - ## Prerequisites
-    - [uv](https://docs.astral.sh/uv/) package manager (recommended)
-    - [Python](https://www.python.org) 3.13 or higher
-    - Git (for version control)
 
-- ## Setup
+    - [uv](https://docs.astral.sh/uv) package manager
+    - [Python](https://www.python.org) v3.13 or higher
+    - [Git](https://git-scm.com) for version control
+
+- ## Set Up
+
     - ### Clone the repository:
       ```bash
-       git clone https://github.com/abdalmoniem/AlQuran.git
-       cd AlQuran/helper-scripts
-       ```
+      git clone https://github.com/abdalmoniem/AlQuran.git
+      ```
 
     - ### Install Python (If not already installed):
       ```bash
-       uv python install
-       ```
+      cd AlQuran/helper-scripts
+      uv python install
+      ```
 
     - ### Create and activate a virtual environment (Recommended):
        ```bash
@@ -31,10 +33,11 @@ development workflows.
 
     - ### Install dependencies:
       ```bash
-       uv sync
-       ```
+      uv sync
+      ```
 
     - ## Available Scripts
+
         - ### [generateSampleData.py](generateSampleData.py)
 
           This script generates sample data for the AlQuran application.
@@ -49,17 +52,19 @@ development workflows.
           This script generates drawable resources for surahs in the AlQuran application.
 
             - ##### Options:
+
                 - `--headless`: Generate Surah images Headless (without canvas display)
 
             - ##### Usage:
                 ```bash
                 uv run generateSurahDrawables.py
-
                 ```
 
 - ## Development
+
     - ### Code Style
-        - This project uses [Ruff](https://beta.ruff.rs/) for code formatting and linting.
+
+        - This project uses [Ruff](https://beta.ruff.rs) for code formatting and linting.
           To check your code:
              ```bash
              uv run ruff check .
