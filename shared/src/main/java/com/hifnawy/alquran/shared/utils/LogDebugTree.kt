@@ -1,5 +1,12 @@
 package com.hifnawy.alquran.shared.utils
 
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.critical
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.debug
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.error
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.info
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.shouldShowCaller
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.verbose
+import com.hifnawy.alquran.shared.utils.LogDebugTree.Companion.warn
 import timber.log.Timber
 
 /**
@@ -18,108 +25,222 @@ import timber.log.Timber
  */
 class LogDebugTree : Timber.DebugTree() {
 
+    /**
+     * A companion object for [LogDebugTree] that provides extension functions for [Timber.Forest].
+     *
+     * This object introduces a set of extension functions ([verbose], [debug], [info], [warn], [error], [critical])
+     * for [Timber.Forest]. These functions allow developers to specify whether the caller's location
+     * (class and method name) should be included in the log message on a per-call basis.
+     *
+     * It uses a [ThreadLocal] variable, [shouldShowCaller], to pass the `showCaller` flag
+     * from the call site to the [log] method of the [LogDebugTree] instance without altering the
+     * standard [Timber] API signatures. This ensures that the flag is managed correctly in a
+     * multi-threaded environment.
+     *
+     * @see ThreadLocal
+     * @see Timber.Forest
+     * @see verbose
+     * @see debug
+     * @see info
+     * @see warn
+     * @see error
+     * @see critical
+     */
     companion object {
 
+        /**
+         * A [ThreadLocal] variable used to pass the `showCaller` flag from the extension functions
+         * (e.g., [verbose], [debug]) to the [log] method.
+         *
+         * [ThreadLocal] ensures that the `showCaller` value is specific to the thread that initiated
+         * the log call. This prevents race conditions or incorrect behavior in a multi-threaded
+         * environment where multiple logs might be issued concurrently. Each thread gets its own
+         * independent copy of the boolean flag.
+         *
+         * The value is set at the beginning of each logging extension function and removed at the end
+         * to avoid memory leaks and ensure that the state doesn't persist for subsequent log calls
+         * on the same thread.
+         *
+         * @see isShowCaller
+         */
         private val shouldShowCaller = ThreadLocal<Boolean>()
 
+        /**
+         * Logs a [verbose] message, with an option to include the caller's class and method name.
+         *
+         * This is an extension function for [Timber.Forest] that simplifies logging [verbose] messages
+         * while providing a mechanism to display the call site information. It uses a [ThreadLocal]
+         * variable to pass the `showCaller` preference to the custom [LogDebugTree].
+         *
+         * @param message [String?][String] The message to be logged. Can be a format string.
+         * @param args [Any?][Any] Arguments for the format string in `message`.
+         * @param showCaller [Boolean] If `true`, the log message will be prefixed with the class and method name
+         *   of the caller. Defaults to `false`.
+         */
         fun Timber.Forest.verbose(
                 message: String?,
                 vararg args: Any?,
                 showCaller: Boolean = false
-        ) {
-            shouldShowCaller.set(showCaller)
-            try {
-                v(message, *args)
-            } finally {
-                shouldShowCaller.remove()
-            }
+        ) = shouldShowCaller.run {
+            set(showCaller)
+
+            v(message, *args)
+
+            remove()
         }
 
+        /**
+         * Logs a [debug] message, with an option to include the caller's class and method name.
+         *
+         * This is an extension function for [Timber.Forest] that simplifies logging [debug] messages
+         * while providing a mechanism to display the call site information. It uses a [ThreadLocal]
+         * variable to pass the `showCaller` preference to the custom [LogDebugTree].
+         *
+         * @param message [String?][String] The message to be logged. Can be a format string.
+         * @param args [Any?][Any] Arguments for the format string in `message`.
+         * @param showCaller [Boolean] If `true`, the log message will be prefixed with the class and method name
+         *   of the caller. Defaults to `false`.
+         */
         fun Timber.Forest.debug(
                 message: String?,
                 vararg args: Any?,
                 showCaller: Boolean = false
-        ) {
-            shouldShowCaller.set(showCaller)
-            try {
-                d(message, *args)
-            } finally {
-                shouldShowCaller.remove()
-            }
+        ) = shouldShowCaller.run {
+            set(showCaller)
+
+            d(message, *args)
+
+            remove()
         }
 
+        /**
+         * Logs a [info] message, with an option to include the caller's class and method name.
+         *
+         * This is an extension function for [Timber.Forest] that simplifies logging [info] messages
+         * while providing a mechanism to display the call site information. It uses a [ThreadLocal]
+         * variable to pass the `showCaller` preference to the custom [LogDebugTree].
+         *
+         * @param message [String?][String] The message to be logged. Can be a format string.
+         * @param args [Any?][Any] Arguments for the format string in `message`.
+         * @param showCaller [Boolean] If `true`, the log message will be prefixed with the class and method name
+         *   of the caller. Defaults to `false`.
+         */
         fun Timber.Forest.info(
                 message: String?,
                 vararg args: Any?,
                 showCaller: Boolean = false
-        ) {
-            shouldShowCaller.set(showCaller)
-            try {
-                i(message, *args)
-            } finally {
-                shouldShowCaller.remove()
-            }
+        ) = shouldShowCaller.run {
+            set(showCaller)
+
+            i(message, *args)
+
+            remove()
         }
 
+        /**
+         * Logs a [warn] message, with an option to include the caller's class and method name.
+         *
+         * This is an extension function for [Timber.Forest] that simplifies logging [warn] messages
+         * while providing a mechanism to display the call site information. It uses a [ThreadLocal]
+         * variable to pass the `showCaller` preference to the custom [LogDebugTree].
+         *
+         * @param message [String?][String] The message to be logged. Can be a format string.
+         * @param args [Any?][Any] Arguments for the format string in `message`.
+         * @param showCaller [Boolean] If `true`, the log message will be prefixed with the class and method name
+         *   of the caller. Defaults to `false`.
+         */
         fun Timber.Forest.warn(
                 message: String?,
                 vararg args: Any?,
                 showCaller: Boolean = false
-        ) {
-            shouldShowCaller.set(showCaller)
-            try {
-                w(message, *args)
-            } finally {
-                shouldShowCaller.remove()
-            }
+        ) = shouldShowCaller.run {
+            set(showCaller)
+
+            w(message, *args)
+
+            remove()
         }
 
+        /**
+         * Logs a [error] message, with an option to include the caller's class and method name.
+         *
+         * This is an extension function for [Timber.Forest] that simplifies logging [error] messages
+         * while providing a mechanism to display the call site information. It uses a [ThreadLocal]
+         * variable to pass the `showCaller` preference to the custom [LogDebugTree].
+         *
+         * @param message [String?][String] The message to be logged. Can be a format string.
+         * @param args [Any?][Any] Arguments for the format string in `message`.
+         * @param showCaller [Boolean] If `true`, the log message will be prefixed with the class and method name
+         *   of the caller. Defaults to `false`.
+         */
         fun Timber.Forest.error(
                 message: String?,
                 vararg args: Any?,
                 showCaller: Boolean = false
-        ) {
-            shouldShowCaller.set(showCaller)
-            try {
-                e(message, *args)
-            } finally {
-                shouldShowCaller.remove()
-            }
+        ) = shouldShowCaller.run {
+            set(showCaller)
+
+            e(message, *args)
+
+            remove()
         }
 
+        /**
+         * Logs a [critical] message, with an option to include the caller's class and method name.
+         *
+         * This is an extension function for [Timber.Forest] that simplifies logging [critical] messages
+         * while providing a mechanism to display the call site information. It uses a [ThreadLocal]
+         * variable to pass the `showCaller` preference to the custom [LogDebugTree].
+         *
+         * @param message [String?][String] The message to be logged. Can be a format string.
+         * @param args [Any?][Any] Arguments for the format string in `message`.
+         * @param showCaller [Boolean] If `true`, the log message will be prefixed with the class and method name
+         *   of the caller. Defaults to `false`.
+         */
         fun Timber.Forest.critical(
                 message: String?,
                 vararg args: Any?,
                 showCaller: Boolean = false
-        ) {
-            shouldShowCaller.set(showCaller)
-            try {
-                wtf(message, *args)
-            } finally {
-                shouldShowCaller.remove()
-            }
+        ) = shouldShowCaller.run {
+            set(showCaller)
+
+            wtf(message, *args)
+
+            remove()
         }
     }
 
     /**
-     * Retrieves the showCaller flag from the ThreadLocal variable, defaulting to true.
+     * A private property that retrieves the `showCaller` flag from the [shouldShowCaller]
+     * [ThreadLocal] variable. This flag determines whether the caller's class and method name
+     * should be included in the log message.
+     *
+     * @return `true` if the `showCaller` flag was explicitly set for the current thread's log call,
+     *         `false` otherwise. It defaults to `false` if the [ThreadLocal] variable is not set.
+     *
+     * @see shouldShowCaller
      */
-    private val isShowCallerSet: Boolean get() = shouldShowCaller.get() ?: false
+    private val isShowCaller: Boolean get() = shouldShowCaller.get() ?: false
 
+    /**
+     * A private computed property that inspects the call stack to find the original caller of the log function.
+     *
+     * It creates a [Throwable] to get the current stack trace and then iterates through it to find
+     * the first stack frame that is not part of the [LogDebugTree] or [Timber] classes.
+     * This ensures that the log tag points to the code that actually issued the log request,
+     * rather than the logging infrastructure itself.
+     *
+     * @return [StackTraceObject] A [StackTraceObject] containing the class and method name of the caller.
+     *   If the caller cannot be determined, it defaults to a [StackTraceObject]
+     *   with `Unknown` values.
+     *
+     * @see StackTraceObject
+     */
     private val callerObject: StackTraceObject
-        get() {
-            val stackTrace = Throwable().stackTrace
-
-            val logClassName = LogDebugTree::class.java.name
-            val timberClassName = Timber::class.java.name
-
-            val callerElement = stackTrace.firstOrNull { element ->
-                val className = element.className
-                !className.startsWith(logClassName) &&
-                !className.startsWith(timberClassName)
-            } ?: StackTraceElement("Unknown", "Unknown", "Unknown.kt", 0)
-
-            return StackTraceObject(callerElement.className, callerElement.methodName)
+        get() = (Throwable().stackTrace.firstOrNull { element ->
+            !element.className.startsWith(LogDebugTree::class.java.name) && !element.className.startsWith(Timber::class.java.name)
+        } ?: StackTraceElement("Unknown", "Unknown", "Unknown.kt", 0)).run {
+            StackTraceObject(className, methodName)
         }
 
     /**
@@ -166,14 +287,10 @@ class LogDebugTree : Timber.DebugTree() {
      * @see timber.log.Timber.Forest.log
      * @see System.out
      */
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-        val showCaller = isShowCallerSet
-
-        val logMessage = when {
-            showCaller -> "$callerObject: $message"
-            else       -> message
-        }
-
-        super.log(priority, callerObject.toString(), logMessage, t)
+    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) = when {
+        isShowCaller -> "$callerObject: $message"
+        else         -> message
+    }.let {
+        super.log(priority, callerObject.toString(), it, t)
     }
 }
